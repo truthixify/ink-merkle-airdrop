@@ -22,6 +22,8 @@
     }
   },
   "ink": {
-    "flipper": ".papi/contracts/flipper.json"
+    "flipper": ".papi/contracts/flipper.json",
+    "erc20": ".papi/contracts/erc20.json",
+    "merkle_airdrop": ".papi/contracts/merkle_airdrop.json"
   }
 }

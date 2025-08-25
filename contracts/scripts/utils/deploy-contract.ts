@@ -56,7 +56,6 @@ export async function deployContract<
     const txResult = await deployer
       .deploy(constructorName, constructorPayload)
       .signAndSubmit(signer)
-
     if (!txResult.ok) {
       console.error(txResult.dispatchError)
       throw new Error("Failed to deploy contract")
