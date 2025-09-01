@@ -1,55 +1,9 @@
 import { contracts } from "@polkadot-api/descriptors"
-import { type FixedSizeArray, FixedSizeBinary, Binary } from "polkadot-api"
+import { FixedSizeBinary } from "polkadot-api"
 import { deployContract } from "./utils/deploy-contract"
 import { initApi } from "./utils/init-api"
 import { writeAddresses } from "./utils/write-addresses"
 
-/**
- * Converts a hex string into a fixed-size Uint8Array (32 bytes).
- * Pads with leading zeros if the hex is shorter, or trims if longer.
- */
-export function hexToBytes32(hex: string): Uint8Array {
-  // Remove "0x" prefix if present
-  hex = hex.startsWith("0x") ? hex.slice(2) : hex
-
-  // Ensure even length
-  if (hex.length % 2 !== 0) {
-    hex = `0${hex}`
-  }
-
-  // Convert hex to bytes
-  let bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = Number.parseInt(hex.slice(i, i + 2), 16)
-  }
-
-  // Pad or trim to 32 bytes
-  if (bytes.length > 32) {
-    bytes = bytes.slice(bytes.length - 32) // take last 32 bytes
-  } else if (bytes.length < 32) {
-    const padded = new Uint8Array(32)
-    padded.set(bytes, 32 - bytes.length) // right-align, pad with zeros on left
-    bytes = padded
-  }
-
-  return bytes
-}
-
-/**
- * Converts a fixed-size Uint8Array (32 bytes) into a hex string.
- */
-export function bytes32ToHex(bytes: Uint8Array): string {
-  if (bytes.length !== 32) {
-    throw new Error("Input must be 32 bytes")
-  }
-
-  return (
-    "0x" +
-    Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, "0")) // convert each byte to hex
-      .join("")
-  )
-}
 // Example setup values for deployment and testing
 const setup = {
   alice_account: "0x9621dde636de098b43efb0fa9b61facfe328f99d",
@@ -103,7 +57,11 @@ const main = async () => {
   const initResult = await initApi()
   const erc20CodeHash = "0x668a3df3b0a4f99f9752fc6c27bf3f644d824a81a66a9615959d8fc25dc460df"
 
-  const deployResult = await deployContract(
+  const deployErc20Result = await deployContract(initResult, "erc20", contracts.erc20, "new", {
+    total_supply: [setup.total_supply, 0n, 0n, 0n],
+  })
+
+  const deployMerkleAirdropResult = await deployContract(
     initResult,
     "merkle_airdrop",
     contracts.merkle_airdrop,
@@ -115,12 +73,13 @@ const main = async () => {
     },
   )
 
-  await writeAddresses({ merkle_aidrop: deployResult })
+  await writeAddresses({ merkle_airdrop: deployMerkleAirdropResult })
+  await writeAddresses({ erc20: deployErc20Result })
 }
 
 main()
   .catch((error) => {
-    // console.error(error)
+    console.error(error)
     process.exit(1)
   })
   .finally(() => process.exit(0))

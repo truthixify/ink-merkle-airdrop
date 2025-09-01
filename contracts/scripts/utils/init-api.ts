@@ -40,7 +40,7 @@ export async function initApi() {
 
     // Setup signer
     const accountUri = process.env.ACCOUNT_URI || "//Alice"
-    const derive = sr25519CreateDerive(entropyToMiniSecret(mnemonicToEntropy(DEV_PHRASE)))
+    const derive = sr25519CreateDerive(entropyToMiniSecret(mnemonicToEntropy(accountUri)))
     const keyPair = derive(accountUri)
     const signer = getPolkadotSigner(keyPair.publicKey, "Sr25519", keyPair.sign)
     const ss58Address = AccountId().dec(signer.publicKey)

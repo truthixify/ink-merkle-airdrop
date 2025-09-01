@@ -19,6 +19,8 @@ interface ChainSelectProps {
 export function ChainSelect({ chainId, setChainId }: ChainSelectProps) {
   const chainIds = Object.keys(config.chains) as (keyof typeof config.chains)[]
 
+//   console.log("Available chain IDs:", chainIds) // Debugging line
+
   return (
     <Select value={chainId} onValueChange={setChainId}>
       <SelectTrigger

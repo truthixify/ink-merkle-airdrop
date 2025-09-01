@@ -1,25 +1,49 @@
 import { contracts } from "@polkadot-api/descriptors"
-import * as flipperPassethub from "contracts/deployments/flipper/passethub"
-import * as flipperPop from "contracts/deployments/flipper/pop"
-// import * as flipperDev from "contracts/deployments/flipper/dev"
+// import * as merkleAirdropPop from "contracts/deployments/merkle_airdrop/pop"
+// import * as erc20Pop from "contracts/deployments/erc20/pop"
+import * as erc20Passethub from "contracts/deployments/erc20/passetHub"
+import * as merkleAirdropPassethub from "contracts/deployments/merkle_airdrop/passetHub"
+import * as merkleAirdropDev from "contracts/deployments/merkle_airdrop/dev"
+import * as erc20Dev from "contracts/deployments/erc20/dev"
 
-export const flipper = {
-  contract: contracts.flipper,
+export const merkleAirdrop = {
+  contract: contracts.merkle_airdrop,
   evmAddresses: {
-    // dev: flipperDev.evmAddress,
-    pop: flipperPop.evmAddress,
-    passethub: flipperPassethub.evmAddress,
+    dev: merkleAirdropDev.evmAddress,
+    // pop: merkleAirdropPop.evmAddress,
+    passethub: merkleAirdropPassethub.evmAddress,
     // Add more deployments here
   },
   ss58Addresses: {
-    // dev: flipperDev.ss58Address,
-    pop: flipperPop.ss58Address,
-    passethub: flipperPassethub.ss58Address,
+    dev: merkleAirdropDev.ss58Address,
+    // pop: merkleAirdropPop.ss58Address,
+    passethub: merkleAirdropPassethub.ss58Address,
     // Add more deployments here
   },
 }
 
+export const erc20 = {
+  contract: contracts.erc20,
+  evmAddresses: {
+    dev: erc20Dev.evmAddress,
+    // pop: erc20Pop.evmAddress,
+    passethub: erc20Passethub.evmAddress,
+    // Add more deployments here
+  },
+  ss58Addresses: {
+    dev: erc20Dev.ss58Address,
+    // pop: erc20Pop.ss58Address,
+    passethub: erc20Passethub.ss58Address,   
+    // Add more deployments here
+    },
+}
+
 export const deployments = {
-  flipper,
+    merkleAirdropDev,
+    erc20Dev,
+    erc20Passethub,
+    merkleAirdropPassethub,
+    // merkleAirdropPop,
+    // erc20Pop,
   // Add more contracts here
 }

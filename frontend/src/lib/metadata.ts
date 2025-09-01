@@ -14,7 +14,7 @@ export const siteBanner = {
 export const siteMetadata: Metadata = {
   title: siteTitle,
   description: siteDescription,
-  metadataBase: new URL("https://inkathon.xyz"),
+  metadataBase: new URL("https://ink-merkle-aridrop.vercel.app"),
   openGraph: {
     images: [siteBanner],
   },
@@ -22,11 +22,8 @@ export const siteMetadata: Metadata = {
     images: [siteBanner],
     description: siteDescription,
     card: "summary_large_image",
-    site: "@scio_xyz",
-    creator: "@scio_xyz",
+    site: "@ink-merkle-aridrop.vercel.app",
+    creator: "@truthixify",
   },
-  authors: [
-    { name: "Scio Labs", url: "https://scio.xyz" },
-    { name: "Dennis Zoma", url: "https://zoma.dev" },
-  ],
+  authors: [{ name: "truthixify", url: "https://truthixify.vercel.app" }],
 }

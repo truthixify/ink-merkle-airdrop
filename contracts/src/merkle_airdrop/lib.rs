@@ -8,6 +8,7 @@ mod merke_airdrop {
     use ink::env::hash::{HashOutput, Keccak256};
     use ink::env::hash_bytes;
     use ink::prelude::vec::Vec;
+    use ink::storage::Mapping;
     use ink::{H256, U256};
 
     fn hash(left: &[u8], right: &[u8]) -> [u8; 32] {
@@ -54,10 +55,22 @@ mod merke_airdrop {
         value: U256,
     }
 
+    #[derive(Debug, PartialEq, Eq)]
+    #[ink::scale_derive(Encode, Decode, TypeInfo)]
+    pub enum Error {
+        TransferFailed,
+        InvalidProof,
+        AlreadyClaimed,
+        AmountCannotBeZero,
+    }
+
+    pub type Result<T> = core::result::Result<T, Error>;
+
     #[ink(storage)]
     pub struct MerkleAirdrop {
-        erc20_contract: Erc20Ref,
-        root: [u8; 32],
+        pub erc20_contract: Erc20Ref,
+        pub root: [u8; 32],
+        pub claimed: Mapping<Address, bool>,
     }
 
     impl MerkleAirdrop {
@@ -82,10 +95,12 @@ mod merke_airdrop {
                 .proof_size_limit(proof_size_limit)
                 .storage_deposit_limit(storage_deposit_limit)
                 .instantiate();
+            let claimed = Mapping::new();
 
             Self {
                 erc20_contract,
                 root,
+                claimed,
             }
         }
 
@@ -103,38 +118,61 @@ mod merke_airdrop {
                 .endowment(0.into())
                 .salt_bytes(Some([1u8; 32]))
                 .instantiate();
+            let claimed = Mapping::new();
 
             Self {
                 erc20_contract,
                 root,
+                claimed,
             }
         }
 
         #[ink(message)]
-        pub fn fund(&mut self, amount: U256) {
+        pub fn fund(&mut self, amount: U256) -> Result<()> {
             let caller = self.env().caller();
             let contract = self.env().address();
 
+            if amount == U256::zero() {
+                return Err(Error::AmountCannotBeZero);
+            }
+
             let transferred = self.erc20_contract.transfer_from(caller, contract, amount);
 
-            assert!(transferred.is_ok(), "Transfer failed");
+            if transferred.is_err() {
+                return Err(Error::TransferFailed);
+            }
+
+            Ok(())
         }
 
         #[ink(message)]
-        pub fn claim(&mut self, value: U256, proof: Vec<[u8; 32]>, index: u64) {
+        pub fn claim(&mut self, value: U256, proof: Vec<[u8; 32]>, index: u64) -> Result<()> {
             let recipient = self.env().caller();
+            let already_claimed = self.claimed.get(recipient).unwrap_or(false);
+            if already_claimed {
+                return Err(Error::AlreadyClaimed);
+            }
+
             let encoded = (recipient, value);
             let mut leaf = <Keccak256 as HashOutput>::Type::default();
             ink::env::hash_encoded::<Keccak256, _>(&encoded, &mut leaf);
             let verified = verify_proof(leaf, &proof, index, self.root);
 
-            assert!(verified, "Invalid proof");
+            if !verified {
+                return Err(Error::InvalidProof);
+            }
+
+            self.claimed.insert(recipient, &true);
 
             let transferred = self.erc20_contract.transfer(recipient, value);
 
-            assert!(transferred.is_ok(), "Transfer failed");
+            if transferred.is_err() {
+                return Err(Error::TransferFailed);
+            }
 
             self.env().emit_event(Claimed { recipient, value });
+
+            Ok(())
         }
 
         /// Get the address of the other contract after it has been instantiated. We can
@@ -147,6 +185,21 @@ mod merke_airdrop {
         #[ink(message)]
         pub fn erc20_address(&mut self) -> Address {
             self.erc20_contract.address()
+        }
+
+        #[ink(message)]
+        pub fn root(&self) -> [u8; 32] {
+            self.root
+        }
+
+        #[ink(message)]
+        pub fn is_claimed(&self, recipient: Address) -> bool {
+            self.claimed.get(recipient).unwrap_or(false)
+        }
+
+        #[ink(message)]
+        pub fn hash_0x(&self, left: [u8; 32], right: [u8; 32]) -> [u8; 32] {
+            hash(&left, &right)
         }
     }
 }
