@@ -1,6 +1,4 @@
-![inkathon Banner](frontend/public/inkathon-readme-banner.png)
-
-# merkle_airdrop
+# Merkle Airdrop dApp
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Built with ink!](https://raw.githubusercontent.com/paritytech/ink/master/.images/badge.svg)](https://use.ink)
@@ -8,11 +6,25 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-000000?logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white)
 
-> Full-stack dApp built with ink! smart contracts and Next.js
+> A decentralized airdrop system using Merkle trees for efficient and secure token distribution on Polkadot
 
-- 🤖 **Check out the [live demo](https://inkathon.xyz)**
-- 📖 **Explore our new [documentation](https://docs.inkathon.xyz)**
-- 💬 **Join the discussion on [Telegram](https://t.me/inkathon)**
+## Features
+
+- 🌳 **Merkle Tree Verification**: Efficient proof-based token claiming system
+- 🪙 **ERC20 Integration**: Built-in ERC20 token contract for airdrop distribution  
+- 🔒 **Secure Claims**: Cryptographic proofs prevent double-claiming and unauthorized access
+- 🎯 **Gas Efficient**: Minimal on-chain storage using Merkle root verification
+- 🌐 **Full-Stack**: Complete dApp with smart contracts and modern web interface
+
+## How It Works
+
+The Merkle Airdrop system allows efficient distribution of tokens to a large number of recipients:
+
+1. **Merkle Tree Generation**: Create a Merkle tree with recipient addresses and amounts
+2. **Contract Deployment**: Deploy the airdrop contract with the Merkle root
+3. **Token Funding**: Fund the contract with ERC20 tokens for distribution
+4. **Claim Process**: Recipients provide Merkle proofs to claim their allocated tokens
+5. **Verification**: Smart contract verifies proofs against the stored Merkle root
 
 ## Quickstart ⚡
 
@@ -20,40 +32,90 @@
 >
 > - Setup Node.js v20+ (recommended via [nvm](https://github.com/nvm-sh/nvm))
 > - Install [Bun](https://bun.sh/)
+> - Install [Rust](https://rustup.rs/) and [cargo-contract](https://github.com/paritytech/cargo-contract)
 
-Use the new `create-inkathon-app` CLI to set up the boilerplate:
+Clone and setup the project:
 
 ```bash
-bunx create-inkathon-app@latest
+git clone <repository-url>
+cd merkle_airdrop
 
-cd <project-name>
-
+bun install
 bun run dev
 ```
 
-Learn more in our new [documentation](https://docs.inkathon.xyz).
+This will start both the local Substrate node and the Next.js frontend.
 
-## About the project
+## Smart Contracts
 
-The inkathon boilerplate is almost as old as ink! itself. With over 200 stars, more than 250 public projects depending on it, and the most active [ink! Telegram group](https://t.me/inkathon).
+### MerkleAirdrop Contract
 
-It offers a complete setup for developing full-stack dApps on Polkadot with ink! smart contracts and Next.js and now shines in new glory with full ink! v6 support. Powered by Papi, ReactiveDOT, Pop CLI, and more.
+The main contract handles the airdrop logic:
 
-## New Features in v6
+- **Constructor**: Initialize with ERC20 contract and Merkle root
+- **fund()**: Add tokens to the airdrop pool
+- **claim()**: Verify Merkle proof and distribute tokens
+- **is_claimed()**: Check if an address has already claimed
+- **root()**: Get the stored Merkle root
 
-The boilerplate has been completely rebuilt with:
+### ERC20 Contract
 
-- **Full ink! v6 support** with PolkaVM compatibility
-- **Type-safe contract interactions** via PAPI
-- **Modern stack**: Bun, Next.js 15, React 19, Tailwind CSS v4
-- **Improved DX**: Better build scripts & deployment automation
-- **Production-ready**: Docker support, self-hosting optimized
-- **New `create-inkathon-app` CLI** for setting up the boilerplate in seconds
-- **New [documentation](https://docs.inkathon.xyz)** with educational resources & guides
+Standard ERC20 implementation for the airdrop tokens with:
+- Standard transfer functionality
+- Allowance system for contract interactions
+- Mint capability for initial token creation
 
-## Changelog
+## Project Structure
 
-> [!NOTE]  
-> The old ink! v5 compatible boilerplate is available on the [`v1` branch](https://github.com/scio-labs/inkathon/tree/v1).
+```
+merkle_airdrop/
+├── contracts/           # ink! Smart Contracts
+│   ├── src/
+│   │   ├── erc20/      # ERC20 token contract
+│   │   └── merkle_airdrop/  # Main airdrop contract
+│   └── scripts/        # Deployment scripts
+├── frontend/           # Next.js Frontend
+│   ├── src/
+│   │   ├── components/ # React components
+│   │   ├── pages/      # Next.js pages
+│   │   └── lib/        # Utilities and contract interactions
+│   └── public/         # Static assets
+└── package.json        # Workspace configuration
+```
 
-The v6 changelog is available on the [GitHub releases page](https://github.com/scio-labs/inkathon/releases).
+## Development Commands
+
+```bash
+# Start development environment
+bun run dev
+
+# Start local Substrate node
+bun run node
+
+# Build smart contracts
+bun run -F contracts build
+
+# Generate contract types
+bun run codegen
+
+# Deploy contracts
+bun run -F contracts deploy
+
+# Build frontend for production
+bun run build
+
+# Run tests
+bun run test
+
+# Lint and format code
+bun run lint:fix
+```
+
+## Technology Stack
+
+- **Smart Contracts**: ink! v6 with PolkaVM compatibility
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS v4
+- **Blockchain Interaction**: Polkadot API (PAPI), ReactiveDOT
+- **Development**: Bun, Docker support
+- **UI Components**: Radix UI primitives

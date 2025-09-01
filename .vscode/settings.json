@@ -45,5 +45,6 @@
     ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
     ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
-  "github-actions.use-enterprise": true
+"github-actions.use-enterprise": true,
+"kiroAgent.configureMCP": "Disabled"
 }
