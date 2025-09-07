@@ -1,6 +1,6 @@
-import { keccak256, toUtf8Bytes, solidityPackedKeccak256, solidityPacked, getBytes } from 'ethers';
+import { getBytes } from 'ethers';
+import { keccak_256 } from "@noble/hashes/sha3"
 import { FixedSizeBinary } from 'polkadot-api';
-import {  } from 'polkadot-api/ink';
 
 // Define a type for your leaf data
 export type LeafData = {
@@ -22,8 +22,14 @@ export class MerkleTree {
 
   /** keccak256(abi.encodePacked(address, uint256)) */
   public static encodeLeaf(recipient: string, value: bigint): Uint8Array {
-    const encoded = solidityPacked(["address", "uint256"], [recipient, value]);
-    return getBytes(keccak256(encoded)); // one hash only
+    // const encoded = solidityPacked(["address", "uint256"], [recipient, value]);
+    // return getBytes(keccak256(encoded)); // one hash only
+
+    return getBytes(keccak_256(
+        FixedSizeBinary.fromText("0x" + recipient.replace(/^0x/, '').padStart(64, '0')).asBytes().concat(
+            FixedSizeBinary.fromBytes(value).asBytes(),
+        )
+    ));
   }
 
   /** keccak256(left || right) */
@@ -31,7 +37,7 @@ export class MerkleTree {
     const concatenated = new Uint8Array(left.length + right.length);
     concatenated.set(left, 0);
     concatenated.set(right, left.length);
-    return getBytes(keccak256(concatenated));
+    return getBytes(keccak_256(concatenated));
   }
 
   private buildTree(): void {
@@ -152,7 +158,7 @@ async function main() {
     // [173, 50, 40, 182, 118, 247, 211, 205, 66, 132, 165, 68, 63, 23, 241, 150, 43, 54, 228, 145, 179, 10, 64, 178, 64, 88, 73, 229, 151, 186, 95, 181]
 
     console.log("Merkle Root:", Array.from(merkleTree.root!).map(b => b.toString(16).padStart(2, '0')).join(''));
-    // console.log("Computed Leaf alice", MerkleTree.encodeLeaf(setup.alice_account, setup.airdrop_amount_alice), "Expected:", setup.leaf_alice);
+    console.log("Computed Leaf alice", MerkleTree.encodeLeaf(setup.alice_account, setup.airdrop_amount_alice), "Expected:", setup.leaf_alice);
     console.log("Computed hash_0x", MerkleTree.hashPair(
         new Uint8Array().fill(0, 0, 32),
         new Uint8Array().fill(0, 0, 32),
@@ -162,21 +168,21 @@ async function main() {
     const leafToProve = MerkleTree.encodeLeaf(leafData[0].recipient, leafData[0].value);
     const proof = merkleTree.getProof(0);
 
-    // console.log("\nProof for leaf 0:", proof.map(p => Array.from(p).map(b => b.toString(16).padStart(2, '0')).join('')));
-    // const isValid = MerkleTree.verifyProof(leafToProve, proof, 0, merkleTree.root!);
-    // console.log("Is leaf 0 valid?", isValid); // Expected: true
+    console.log("\nProof for leaf 0:", proof.map(p => Array.from(p).map(b => b.toString(16).padStart(2, '0')).join('')));
+    const isValid = MerkleTree.verifyProof(leafToProve, proof, 0, merkleTree.root!);
+    console.log("Is leaf 0 valid?", isValid); // Expected: true
 
-    // // Test an invalid proof
-    // const fakeLeaf = MerkleTree.encodeLeaf(setup.creator, 9999n); // Different value
-    // const isFakeValid = MerkleTree.verifyProof(fakeLeaf, proof, 0, merkleTree.root!);
-    // console.log("Is fake leaf valid?", isFakeValid); // Expected: false
+    // Test an invalid proof
+    const fakeLeaf = MerkleTree.encodeLeaf(setup.creator, 9999n); // Different value
+    const isFakeValid = MerkleTree.verifyProof(fakeLeaf, proof, 0, merkleTree.root!);
+    console.log("Is fake leaf valid?", isFakeValid); // Expected: false
 
-    // // Test a different leaf
-    // const leafToProve2 = MerkleTree.encodeLeaf(leafData[1].recipient, leafData[1].value);
-    // const proof2 = merkleTree.getProof(1);
-    // console.log("\nProof for leaf 2:", proof2.map(p => FixedSizeBinary.fromHex("0x" + Array.from(p).map(b => b.toString(16).padStart(2, '0')).join('')).asBytes()));
-    // const isValid2 = MerkleTree.verifyProof(leafToProve2, proof2, 1, merkleTree.root!);
-    // console.log("Is leaf 2 valid?", isValid2); // Expected: true
+    // Test a different leaf
+    const leafToProve2 = MerkleTree.encodeLeaf(leafData[1].recipient, leafData[1].value);
+    const proof2 = merkleTree.getProof(1);
+    console.log("\nProof for leaf 2:", proof2.map(p => FixedSizeBinary.fromHex("0x" + Array.from(p).map(b => b.toString(16).padStart(2, '0')).join('')).asBytes()));
+    const isValid2 = MerkleTree.verifyProof(leafToProve2, proof2, 1, merkleTree.root!);
+    console.log("Is leaf 2 valid?", isValid2); // Expected: true
 }
 
 main().catch(console.error);
