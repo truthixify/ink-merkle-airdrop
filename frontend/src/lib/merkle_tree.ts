@@ -24,12 +24,11 @@ export class MerkleTree {
   public static encodeLeaf(recipient: string, value: bigint): Uint8Array {
     // const encoded = solidityPacked(["address", "uint256"], [recipient, value]);
     // return getBytes(keccak256(encoded)); // one hash only
+    // const encoded = (recipient, value);
 
     return getBytes(keccak_256(
-        FixedSizeBinary.fromText("0x" + recipient.replace(/^0x/, '').padStart(64, '0')).asBytes().concat(
-            FixedSizeBinary.fromBytes(value).asBytes(),
-        )
-    ));
+        new Uint8Array([...FixedSizeBinary.fromHex(recipient).asBytes()]
+    )));
   }
 
   /** keccak256(left || right) */
@@ -183,6 +182,8 @@ async function main() {
     console.log("\nProof for leaf 2:", proof2.map(p => FixedSizeBinary.fromHex("0x" + Array.from(p).map(b => b.toString(16).padStart(2, '0')).join('')).asBytes()));
     const isValid2 = MerkleTree.verifyProof(leafToProve2, proof2, 1, merkleTree.root!);
     console.log("Is leaf 2 valid?", isValid2); // Expected: true
+
+    console.log("lapa: ", keccak_256(new Uint8Array().fill(0, 0, 32)));
 }
 
 main().catch(console.error);
