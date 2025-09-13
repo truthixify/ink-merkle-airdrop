@@ -58,6 +58,7 @@ export async function deployContract<
       .signAndSubmit(signer)
     if (!txResult.ok) {
       console.error(txResult.dispatchError)
+      console.error("error value", txResult.dispatchError.value)
       throw new Error("Failed to deploy contract")
     }
 

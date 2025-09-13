@@ -1,5 +1,6 @@
+import fs from "node:fs"
+import path from "node:path"
 import { contracts } from "@polkadot-api/descriptors"
-import { FixedSizeBinary } from "polkadot-api"
 import { deployContract } from "./utils/deploy-contract"
 import { initApi } from "./utils/init-api"
 import { writeAddresses } from "./utils/write-addresses"
@@ -41,6 +42,19 @@ const setup = {
 }
 
 /**
+ * Reads the code hash from the compiled contract JSON file.
+ * @param filePath Path to the `.contract` JSON artifact.
+ * @returns The contract's code hash as a hex string.
+ */
+function readCodeHash(filePath: string): string {
+  const artifact = JSON.parse(fs.readFileSync(filePath, "utf-8"))
+  if (!artifact?.source?.hash) {
+    throw new Error(`No source.hash found in ${filePath}`)
+  }
+  return artifact.source.hash
+}
+
+/**
  * This script initializes the Polkadot API client and deploys the contract
  * using the provided utilities under './utils'.
  *
@@ -55,26 +69,30 @@ const setup = {
  */
 const main = async () => {
   const initResult = await initApi()
-  const erc20CodeHash = "0x668a3df3b0a4f99f9752fc6c27bf3f644d824a81a66a9615959d8fc25dc460df"
+
+  // Read ERC20 code hash dynamically from build artifact
+  const erc20ArtifactPath = path.resolve(__dirname, "../deployments/erc20/erc20.json")
+  const erc20CodeHash = readCodeHash(erc20ArtifactPath)
 
   const deployErc20Result = await deployContract(initResult, "erc20", contracts.erc20, "new", {
     total_supply: [setup.total_supply, 0n, 0n, 0n],
   })
 
-  const deployMerkleAirdropResult = await deployContract(
-    initResult,
-    "merkle_airdrop",
-    contracts.merkle_airdrop,
-    "new_no_limits",
-    {
-      erc20_contract_code_hash: FixedSizeBinary.fromHex(erc20CodeHash),
-      root: FixedSizeBinary.fromArray(setup.root),
-      total_supply: [setup.total_supply, 0n, 0n, 0n],
-    },
-  )
-
-  await writeAddresses({ merkle_airdrop: deployMerkleAirdropResult })
   await writeAddresses({ erc20: deployErc20Result })
+
+  //   const deployMerkleAirdropResult = await deployContract(
+  //     initResult,
+  //     "merkle_airdrop",
+  //     contracts.merkle_airdrop,
+  //     "new_no_limits",
+  //     {
+  //       erc20_contract_code_hash: FixedSizeBinary.fromHex(erc20CodeHash),
+  //       root: FixedSizeBinary.fromArray(setup.root),
+  //       total_supply: [setup.total_supply, 0n, 0n, 0n],
+  //     },
+  //   )
+
+  //   await writeAddresses({ merkle_airdrop: deployMerkleAirdropResult })
 }
 
 main()

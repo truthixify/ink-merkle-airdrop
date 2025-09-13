@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x6c6d312d53e4902703f5c7d27936900361d1c9339b274965918ecae81147efa7",
+    "hash": "0xd4a5fcd6a0bd9d0907d13ef8fa53e84f7ddc51a7b7c0a064c0dd61bef9c2e95b",
     "language": "ink! 6.0.0-alpha.1",
     "compiler": "rustc 1.89.0-nightly",
     "build_info": {
@@ -76,9 +76,18 @@
         ],
         "default": false,
         "docs": [
-          "Initializes the contract by instantiating the code at the given code hash via",
-          "`instantiate` host function with the supplied weight and storage",
-          "limits."
+          "Constructor: deploys a new ERC20 contract with resource limits.",
+          "",
+          "Arguments:",
+          "- erc20_contract_code_hash: code hash of ERC20 contract.",
+          "- ref_time_limit: gas ref time limit for instantiation.",
+          "- proof_size_limit: proof size limit.",
+          "- storage_deposit_limit: storage deposit limit.",
+          "- root: Merkle root of eligible claims.",
+          "- total_supply: total supply of the ERC20 token.",
+          "",
+          "Returns:",
+          "- MerkleAirdrop instance with ERC20 deployed and root set."
         ],
         "label": "new_with_limits",
         "payable": false,
@@ -121,8 +130,15 @@
         ],
         "default": false,
         "docs": [
-          "Initializes the contract by instantiating the code at the given code hash via",
-          "the `instantiate` host function with no weight or storage limits."
+          "Constructor: deploys a new ERC20 contract without resource limits.",
+          "",
+          "Arguments:",
+          "- erc20_contract_code_hash: code hash of ERC20 contract.",
+          "- root: Merkle root of eligible claims.",
+          "- total_supply: total supply of the ERC20 token.",
+          "",
+          "Returns:",
+          "- MerkleAirdrop instance with ERC20 deployed and root set."
         ],
         "label": "new_no_limits",
         "payable": false,
@@ -291,7 +307,7 @@
           }
         ],
         "docs": [
-          "Event emitted when a recipient claims airdrop."
+          "Event emitted when a recipient successfully claims their airdrop."
         ],
         "label": "Claimed",
         "module_path": "merkle_airdrop::merke_airdrop",
@@ -319,7 +335,16 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Fund the airdrop contract by transferring tokens in.",
+          "",
+          " Arguments:",
+          " - amount: amount of tokens to transfer into contract.",
+          "",
+          " Errors:",
+          " - `AmountCannotBeZero`: if `amount == 0`.",
+          " - `TransferFailed`: if ERC20 transfer_from fails."
+        ],
         "label": "fund",
         "mutates": true,
         "payable": false,
@@ -363,7 +388,19 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Claim tokens from the Merkle airdrop.",
+          "",
+          " Arguments:",
+          " - value: claim amount for recipient.",
+          " - proof: Merkle proof for `(recipient, value)`.",
+          " - index: leaf index in the Merkle tree.",
+          "",
+          " Errors:",
+          " - `AlreadyClaimed`: if recipient already claimed.",
+          " - `InvalidProof`: if Merkle proof does not validate against root.",
+          " - `TransferFailed`: if ERC20 transfer fails."
+        ],
         "label": "claim",
         "mutates": true,
         "payable": false,
@@ -380,8 +417,10 @@
         "args": [],
         "default": false,
         "docs": [
-          " Get the address of the other contract after it has been instantiated. We can",
-          " use this so we can call the other contract on the frontend."
+          " Get the AccountId of the ERC20 contract.",
+          "",
+          " Returns:",
+          " - AccountId: ERC20 contract account id."
         ],
         "label": "erc20_account_id",
         "mutates": true,
@@ -398,7 +437,12 @@
       {
         "args": [],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Get the Address of the ERC20 contract.",
+          "",
+          " Returns:",
+          " - Address: ERC20 contract address."
+        ],
         "label": "erc20_address",
         "mutates": true,
         "payable": false,
@@ -414,7 +458,12 @@
       {
         "args": [],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Get the Merkle root.",
+          "",
+          " Returns:",
+          " - [u8; 32]: current Merkle root."
+        ],
         "label": "root",
         "mutates": false,
         "payable": false,
@@ -440,7 +489,15 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Check if a recipient has already claimed.",
+          "",
+          " Arguments:",
+          " - recipient: address to check.",
+          "",
+          " Returns:",
+          " - bool: true if recipient already claimed, false otherwise."
+        ],
         "label": "is_claimed",
         "mutates": false,
         "payable": false,
@@ -452,37 +509,6 @@
           "type": 25
         },
         "selector": "0xc58eed46"
-      },
-      {
-        "args": [
-          {
-            "label": "left",
-            "type": {
-              "displayName": [],
-              "type": 10
-            }
-          },
-          {
-            "label": "right",
-            "type": {
-              "displayName": [],
-              "type": 10
-            }
-          }
-        ],
-        "default": false,
-        "docs": [],
-        "label": "hash_0x",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 24
-        },
-        "selector": "0x87b7a8bb"
       }
     ]
   },
