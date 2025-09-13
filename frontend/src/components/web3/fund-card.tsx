@@ -1,19 +1,19 @@
+import { createReviveSdk, type ReviveSdkTypedApi } from "@polkadot-api/sdk-ink"
+import { useChainId, useTypedApi } from "@reactive-dot/react"
+import { type FixedSizeArray, FixedSizeBinary } from "polkadot-api"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
 import { useChainMeta } from "@/hooks/use-chain-meta"
+import { useSignerAndAddress } from "@/hooks/use-signer-and-address"
+import { erc20, merkleAirdrop } from "@/lib/inkathon/deployments"
+import { ellipsify } from "@/lib/utils"
 import { CardSkeleton } from "../layout/skeletons"
+import { Button } from "../ui/button-extended"
 import { Card, CardHeader, CardTitle } from "../ui/card"
 import { Table, TableBody, TableCell, TableRow } from "../ui/table"
-import { useCallback, useEffect, useState } from "react"
-import { createReviveSdk, ReviveSdkTypedApi } from "@polkadot-api/sdk-ink"
-import { merkleAirdrop, erc20, deployments } from "@/lib/inkathon/deployments"
-import { useChainId, useTypedApi } from "@reactive-dot/react"
-import { useSignerAndAddress } from "@/hooks/use-signer-and-address"
-import { Binary, FixedSizeArray, FixedSizeBinary } from "polkadot-api"
-import { ellipsify } from "@/lib/utils"
-import { toast } from "sonner"
-import { Button } from "../ui/button-extended"
 
 interface ERC20State {
-    address: string | null
+  address: string | null
   name: string | null
   symbol: string | null
   total_supply: bigint | null
@@ -22,7 +22,6 @@ interface ERC20State {
 
 export function ChainInfoCard() {
   const { chainMeta, isLoading } = useChainMeta()
-
 
   const [queryIsLoading, setQueryIsLoading] = useState(true)
 
@@ -42,11 +41,15 @@ export function ChainInfoCard() {
 
       // Create SDK & contract instance
       const merkleAirdropSdk = createReviveSdk(api as ReviveSdkTypedApi, merkleAirdrop.contract)
-      const merkleAirdropContract = merkleAirdropSdk.getContract(merkleAirdrop.evmAddresses.passethub)
+      const merkleAirdropContract = merkleAirdropSdk.getContract(
+        merkleAirdrop.evmAddresses.passethub,
+      )
       const erc20AddressResult = await merkleAirdropContract.query("erc20_address", {
         origin: signerAddress as string,
       })
-      const erc20Address = erc20AddressResult.success ? erc20AddressResult.value.response.asHex() : null
+      const erc20Address = erc20AddressResult.success
+        ? erc20AddressResult.value.response.asHex()
+        : null
 
       const sdk = createReviveSdk(api as ReviveSdkTypedApi, erc20.contract)
       const contract = sdk.getContract(erc20Address as string)
@@ -64,8 +67,8 @@ export function ChainInfoCard() {
         name: null,
         symbol: null,
         total_supply: null,
-        balance: erc20Balance ? erc20Balance.reduce((acc, curr) => BigInt(acc) + curr, 0n) : 0n
-      })    
+        balance: erc20Balance ? erc20Balance.reduce((acc, curr) => BigInt(acc) + curr, 0n) : 0n,
+      })
     } catch (error) {
       console.error(error)
     } finally {
@@ -122,7 +125,7 @@ export function ChainInfoCard() {
     const tx = contract
       .send("fund", {
         data: {
-            amount: [1n, 0n, 0n, 0n] as FixedSizeArray<4, bigint>
+          amount: [1n, 0n, 0n, 0n] as FixedSizeArray<4, bigint>,
         },
         origin: signerAddress,
       })
@@ -130,13 +133,13 @@ export function ChainInfoCard() {
       .then((tx) => {
         queryContract()
         console.log(tx)
-        
+
         // if (!tx.ok) throw new Error("Failed to send transaction", { cause: tx })
       })
-    .catch((error) => {
-        console.error("Transaction error:", error);
-        throw error; // Re-throw to be caught by toast.promise
-      });
+      .catch((error) => {
+        console.error("Transaction error:", error)
+        throw error // Re-throw to be caught by toast.promise
+      })
 
     toast.promise(tx, {
       loading: "Sending transaction...",
@@ -158,21 +161,18 @@ export function ChainInfoCard() {
           onClick={() => handleFund()}
           disabled={!signer}
         >
-         Fund
+          Fund
         </Button>
       </CardHeader>
 
       <Table className="inkathon-card-table">
         <TableBody>
-        <TableRow>
+          <TableRow>
             <TableCell>Amount</TableCell>
             <TableCell>
-                <input
-                    type="number"
-                    placeholder="funding amount"
-                />
+              <input type="number" placeholder="funding amount" />
             </TableCell>
-          </TableRow>          
+          </TableRow>
 
           <TableRow>
             <TableCell>Token Address</TableCell>

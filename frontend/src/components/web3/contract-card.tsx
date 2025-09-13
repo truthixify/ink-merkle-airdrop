@@ -1,16 +1,16 @@
 import { createReviveSdk, type ReviveSdkTypedApi } from "@polkadot-api/sdk-ink"
 import { useChainId, useTypedApi } from "@reactive-dot/react"
+import { Loader2 } from "lucide-react"
 import { type FixedSizeArray, FixedSizeBinary } from "polkadot-api"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { useSignerAndAddress } from "@/hooks/use-signer-and-address"
 import { merkleAirdrop } from "@/lib/inkathon/deployments"
+import { ellipsify } from "@/lib/utils"
 import { CardSkeleton } from "../layout/skeletons"
 import { Button } from "../ui/button-extended"
 import { Card, CardHeader, CardTitle } from "../ui/card"
 import { Table, TableBody, TableCell, TableRow } from "../ui/table"
-import { ellipsify } from "@/lib/utils"
-import { Loader2 } from "lucide-react"
 
 interface MerklAirdropState {
   erc20_address: string | null
@@ -79,12 +79,14 @@ export function ContractCard() {
 
       // Create SDK & contract instance
       const sdk = createReviveSdk(api as ReviveSdkTypedApi, merkleAirdrop.contract)
-      const contract = sdk.getContract(merkleAirdrop.evmAddresses.passethub);
+      const contract = sdk.getContract(merkleAirdrop.evmAddresses.passethub)
 
       const erc20AddressResult = await contract.query("erc20_address", {
         origin: signerAddress as string,
       })
-      const erc20Address = erc20AddressResult.success ? erc20AddressResult.value.response.asHex() : null
+      const erc20Address = erc20AddressResult.success
+        ? erc20AddressResult.value.response.asHex()
+        : null
 
       const isClaimedResult = await contract.query("is_claimed", {
         origin: signerAddress as string,
@@ -192,7 +194,7 @@ export function ContractCard() {
           onClick={() => handleClaim()}
           disabled={merkleAirdropState?.is_claimed || !signer}
         >
-         Claim Airdrop
+          Claim Airdrop
         </Button>
       </CardHeader>
 
@@ -201,7 +203,11 @@ export function ContractCard() {
           <TableRow className="">
             <TableCell>Merkle Root</TableCell>
             <TableCell>
-              {merkleAirdropState?.root ? ellipsify(merkleAirdropState?.root) : <Loader2 className="animate-spin" />}
+              {merkleAirdropState?.root ? (
+                ellipsify(merkleAirdropState?.root)
+              ) : (
+                <Loader2 className="animate-spin" />
+              )}
             </TableCell>
           </TableRow>
 
@@ -212,7 +218,13 @@ export function ContractCard() {
 
           <TableRow>
             <TableCell>Token Address</TableCell>
-            <TableCell>{merkleAirdropState?.erc20_address ? ellipsify(merkleAirdropState?.erc20_address) : <Loader2 className="animate-spin" />}</TableCell>
+            <TableCell>
+              {merkleAirdropState?.erc20_address ? (
+                ellipsify(merkleAirdropState?.erc20_address)
+              ) : (
+                <Loader2 className="animate-spin" />
+              )}
+            </TableCell>
           </TableRow>
         </TableBody>
       </Table>

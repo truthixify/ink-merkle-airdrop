@@ -47,13 +47,18 @@ impl Setup {
         let airdrop_amount_alice = U256::from(100_000_000);
 
         // Create leaves by hashing account and value, just like the contract does.
-        let alice_encoded = (alice_account, airdrop_amount_alice);
-        let mut leaf_alice = <Keccak256 as HashOutput>::Type::default();
-        ink::env::hash_encoded::<Keccak256, _>(&alice_encoded, &mut leaf_alice);
+        let leaf_alice = hash_leaf(
+            alice_account.as_bytes(),
+            &airdrop_amount_alice.to_big_endian(),
+        );
+        // let alice_encoded = (alice_account, airdrop_amount_alice);
+        // let mut leaf_alice = <Keccak256 as HashOutput>::Type::default();
+        // ink::env::hash_encoded::<Keccak256, _>(&alice_encoded, &mut leaf_alice);
 
-        let bob_encoded = (bob_account, airdrop_amount_bob);
-        let mut leaf_bob = <Keccak256 as HashOutput>::Type::default();
-        ink::env::hash_encoded::<Keccak256, _>(&bob_encoded, &mut leaf_bob);
+        let leaf_bob = hash_leaf(bob_account.as_bytes(), &airdrop_amount_bob.to_big_endian());
+        // let bob_encoded = (bob_account, airdrop_amount_bob);
+        // let mut leaf_bob = <Keccak256 as HashOutput>::Type::default();
+        // ink::env::hash_encoded::<Keccak256, _>(&bob_encoded, &mut leaf_bob);
 
         // Our tree has two leaves. The root is the hash of both leaves.
         let root = hash_leaf(&leaf_alice, &leaf_bob);
@@ -807,40 +812,6 @@ async fn cannot_claim_twice<Client: E2EBackend>(mut client: Client) -> E2EResult
 
     let result = client.call(&ink_e2e::bob(), &call).dry_run().await?;
     assert!(result.is_err(), "Calling claim again should fail");
-
-    Ok(())
-}
-
-#[ink_e2e::test]
-async fn hash_0x<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
-        .submit()
-        .await
-        .expect("erc20 upload failed");
-
-    let setup = Setup::new();
-    let mut constructor = MerkleAirdropRef::new_no_limits(
-        erc20_contract_code.code_hash,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await
-        .expect("merkle_airdrop instantiate failed");
-    let mut call_builder = contract.call_builder::<MerkleAirdrop>();
-    let call = call_builder.hash_0x([0u8; 32], [0u8; 32]);
-    let result = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `fund` failed")
-        .return_value();
-
-    println!("Hash of two zero hashes: {:?}", result);
 
     Ok(())
 }

@@ -15,6 +15,7 @@
     "clean": "rm -rf .next tsconfig.tsbuildinfo",
     "lint": "biome check . && prettier . --check",
     "lint:fix": "biome check . --write && prettier . --write",
+    "format": "prettier . --write",
     "typecheck": "tsc --pretty --noEmit"
   },
   "dependencies": {

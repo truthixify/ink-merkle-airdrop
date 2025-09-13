@@ -6,6 +6,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function ellipsify(address: string | undefined | null) {
-    if (!address) return ""
-  return address.slice(0, 6) + "..." + address.slice(-4)
+  if (!address) return ""
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
