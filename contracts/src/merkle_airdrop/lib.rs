@@ -1,10 +1,30 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
+/// # Merkle Airdrop Contract
+///
+/// This contract enables ERC20-style token distributions using a Merkle root.
+/// Eligible recipients and claim amounts are committed to in a Merkle tree
+/// off-chain. Each recipient proves eligibility on-chain by providing a Merkle
+/// proof for their `(address, amount)` leaf.
+///
+/// ## Key Features
+/// - Efficient distribution: only the root of the Merkle tree is stored.
+/// - Trustless claims: recipients self-claim with Merkle proofs.
+/// - Double-claim protection: each recipient can only claim once.
+/// - Funded by transferring ERC20-compatible tokens into the contract.
+///
+/// ## Storage
+/// - `asset_contract`: reference to an ERC20-compatible token contract.
+/// - `root`: Merkle root committing to `(address, amount)` pairs.
+/// - `claimed`: mapping to track which addresses have claimed.
 pub use self::merke_airdrop::*;
 
 #[ink::contract]
 mod merke_airdrop {
-    use erc20::Erc20Ref;
+    use assets::{
+        asset_hub_precompile::{AssetHubPrecompileRef, Erc20},
+        AssetId,
+    };
     use ink::env::hash::{HashOutput, Keccak256};
     use ink::env::hash_bytes;
     use ink::prelude::vec::Vec;
@@ -13,12 +33,12 @@ mod merke_airdrop {
 
     /// Compute `keccak256(left || right)`.
     ///
-    /// Arguments:
-    /// - left: left-hand side bytes.
-    /// - right: right-hand side bytes.
+    /// # Arguments
+    /// - `left`: left-hand side bytes.
+    /// - `right`: right-hand side bytes.
     ///
-    /// Returns:
-    /// - [u8; 32]: keccak256 hash of concatenated input.
+    /// # Returns
+    /// - `[u8; 32]`: Keccak256 hash of the concatenated input.
     fn hash(left: &[u8], right: &[u8]) -> [u8; 32] {
         let mut input = Vec::with_capacity(left.len() + right.len());
         input.extend_from_slice(left);
@@ -31,25 +51,23 @@ mod merke_airdrop {
 
     /// Verify that a leaf is part of a Merkle tree with the given root.
     ///
-    /// Arguments:
-    /// - leaf: 32-byte leaf value (`keccak256(address || amount)`).
-    /// - proof: list of sibling nodes from leaf up to the root (bottom → top).
-    /// - index: leaf index (0-based) in the tree, determines left/right order.
-    /// - root: expected Merkle root.
+    /// # Arguments
+    /// - `leaf`: 32-byte leaf value (`keccak256(address || amount)`).
+    /// - `proof`: list of sibling nodes from leaf up to the root (bottom → top).
+    /// - `index`: leaf index (0-based) in the tree, determines left/right order.
+    /// - `root`: expected Merkle root.
     ///
-    /// Returns:
-    /// - bool: true if proof is valid and recomputed root equals `root`.
+    /// # Returns
+    /// - `bool`: true if proof is valid and recomputed root equals `root`.
     fn verify_proof<'a>(leaf: [u8; 32], proof: &'a [[u8; 32]], index: u64, root: [u8; 32]) -> bool {
         let mut computed = leaf;
         let mut index = index;
 
         for sibling in proof.iter() {
             if index % 2 == 0 {
-                // current node is a left child
-                computed = hash(&computed, sibling);
+                computed = hash(&computed, sibling); // current node is left child
             } else {
-                // current node is a right child
-                computed = hash(sibling, &computed);
+                computed = hash(sibling, &computed); // current node is right child
             }
             index /= 2;
         }
@@ -60,101 +78,60 @@ mod merke_airdrop {
     /// Event emitted when a recipient successfully claims their airdrop.
     #[ink(event)]
     pub struct Claimed {
+        /// The address of the recipient.
         #[ink(topic)]
         recipient: Address,
+        /// Amount of tokens claimed.
         value: U256,
     }
 
     /// Errors that can occur when funding or claiming.
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, ink::SolErrorDecode, ink::SolErrorEncode)]
     #[ink::scale_derive(Encode, Decode, TypeInfo)]
     pub enum Error {
+        /// Token transfer failed.
         TransferFailed,
+        /// Merkle proof did not validate against the stored root.
         InvalidProof,
+        /// Recipient has already claimed their allocation.
         AlreadyClaimed,
+        /// Cannot fund with an amount of zero.
         AmountCannotBeZero,
     }
 
+    /// Standard `Result` type for contract operations.
     pub type Result<T> = core::result::Result<T, Error>;
 
     /// Merkle-based ERC20 token airdrop contract.
     ///
-    /// Storage:
-    /// - erc20_contract: reference to the deployed ERC20 contract.
-    /// - root: Merkle root representing eligible recipients and amounts.
-    /// - claimed: mapping of address → bool to track claimed status.
+    /// ## Storage
+    /// - `asset_contract`: reference to the token precompile.
+    /// - `root`: Merkle root of the distribution tree.
+    /// - `claimed`: mapping of address → bool to track claimed status.
     #[ink(storage)]
     pub struct MerkleAirdrop {
-        pub erc20_contract: Erc20Ref,
+        pub asset_contract: AssetHubPrecompileRef,
         pub root: [u8; 32],
         pub claimed: Mapping<Address, bool>,
     }
 
     impl MerkleAirdrop {
-        /// Constructor: deploys a new ERC20 contract with resource limits.
+        /// Create a new Merkle airdrop contract.
         ///
-        /// Arguments:
-        /// - erc20_contract_code_hash: code hash of ERC20 contract.
-        /// - ref_time_limit: gas ref time limit for instantiation.
-        /// - proof_size_limit: proof size limit.
-        /// - storage_deposit_limit: storage deposit limit.
-        /// - root: Merkle root of eligible claims.
-        /// - total_supply: total supply of the ERC20 token.
-        ///
-        /// Returns:
-        /// - MerkleAirdrop instance with ERC20 deployed and root set.
-        #[ink(constructor)]
-        pub fn new_with_limits(
-            erc20_contract_code_hash: H256,
-            ref_time_limit: u64,
-            proof_size_limit: u64,
-            storage_deposit_limit: U256,
-            root: [u8; 32],
-            total_supply: U256,
-        ) -> Self {
-            let caller = Self::env().caller();
-            let erc20_contract = Erc20Ref::new_with_recipient(total_supply, caller)
-                .code_hash(erc20_contract_code_hash)
-                .endowment(0.into())
-                .salt_bytes(Some([1u8; 32]))
-                .ref_time_limit(ref_time_limit)
-                .proof_size_limit(proof_size_limit)
-                .storage_deposit_limit(storage_deposit_limit)
-                .instantiate();
-            let claimed = Mapping::new();
-
-            Self {
-                erc20_contract,
-                root,
-                claimed,
-            }
-        }
-
-        /// Constructor: deploys a new ERC20 contract without resource limits.
-        ///
-        /// Arguments:
-        /// - erc20_contract_code_hash: code hash of ERC20 contract.
-        /// - root: Merkle root of eligible claims.
-        /// - total_supply: total supply of the ERC20 token.
-        ///
-        /// Returns:
-        /// - MerkleAirdrop instance with ERC20 deployed and root set.
-        #[ink(constructor)]
-        pub fn new_no_limits(
-            erc20_contract_code_hash: H256,
-            root: [u8; 32],
-            total_supply: U256,
-        ) -> Self {
-            let caller = Self::env().caller();
-            let erc20_contract = Erc20Ref::new_with_recipient(total_supply, caller)
-                .code_hash(erc20_contract_code_hash)
+        /// # Arguments
+        /// - `asset_id`: asset identifier for the ERC20-compatible token.
+        /// - `root`: Merkle root of the distribution tree.
+        #[ink(constructor, payable)]
+        pub fn new(asset_id: AssetId, asset_contract_code_hash: H256, root: [u8; 32]) -> Self {
+            let asset_contract = AssetHubPrecompileRef::new(asset_id)
+                .code_hash(asset_contract_code_hash)
                 .endowment(0.into())
                 .salt_bytes(Some([1u8; 32]))
                 .instantiate();
             let claimed = Mapping::new();
 
             Self {
-                erc20_contract,
+                asset_contract,
                 root,
                 claimed,
             }
@@ -162,12 +139,12 @@ mod merke_airdrop {
 
         /// Fund the airdrop contract by transferring tokens in.
         ///
-        /// Arguments:
-        /// - amount: amount of tokens to transfer into contract.
+        /// # Arguments
+        /// - `amount`: amount of tokens to transfer into the contract.
         ///
-        /// Errors:
-        /// - `AmountCannotBeZero`: if `amount == 0`.
-        /// - `TransferFailed`: if ERC20 transfer_from fails.
+        /// # Errors
+        /// - [`Error::AmountCannotBeZero`]: if `amount == 0`.
+        /// - [`Error::TransferFailed`]: if ERC20 transfer fails.
         #[ink(message)]
         pub fn fund(&mut self, amount: U256) -> Result<()> {
             let caller = self.env().caller();
@@ -177,7 +154,7 @@ mod merke_airdrop {
                 return Err(Error::AmountCannotBeZero);
             }
 
-            let transferred = self.erc20_contract.transfer_from(caller, contract, amount);
+            let transferred = self.asset_contract.transferFrom(caller, contract, amount);
 
             if transferred.is_err() {
                 return Err(Error::TransferFailed);
@@ -188,15 +165,15 @@ mod merke_airdrop {
 
         /// Claim tokens from the Merkle airdrop.
         ///
-        /// Arguments:
-        /// - value: claim amount for recipient.
-        /// - proof: Merkle proof for `(recipient, value)`.
-        /// - index: leaf index in the Merkle tree.
+        /// # Arguments
+        /// - `value`: claim amount for the recipient.
+        /// - `proof`: Merkle proof for `(recipient, value)`.
+        /// - `index`: leaf index in the Merkle tree.
         ///
-        /// Errors:
-        /// - `AlreadyClaimed`: if recipient already claimed.
-        /// - `InvalidProof`: if Merkle proof does not validate against root.
-        /// - `TransferFailed`: if ERC20 transfer fails.
+        /// # Errors
+        /// - [`Error::AlreadyClaimed`]: if recipient already claimed.
+        /// - [`Error::InvalidProof`]: if Merkle proof does not validate.
+        /// - [`Error::TransferFailed`]: if ERC20 transfer fails.
         #[ink(message)]
         pub fn claim(&mut self, value: U256, proof: Vec<[u8; 32]>, index: u64) -> Result<()> {
             let recipient = self.env().caller();
@@ -217,7 +194,7 @@ mod merke_airdrop {
 
             self.claimed.insert(recipient, &true);
 
-            let transferred = self.erc20_contract.transfer(recipient, value);
+            let transferred = self.asset_contract.transfer(recipient, value);
 
             if transferred.is_err() {
                 return Err(Error::TransferFailed);
@@ -228,28 +205,13 @@ mod merke_airdrop {
             Ok(())
         }
 
-        /// Get the AccountId of the ERC20 contract.
-        ///
-        /// Returns:
-        /// - AccountId: ERC20 contract account id.
+        /// Get the token asset id of the ERC20 contract.
         #[ink(message)]
-        pub fn erc20_account_id(&mut self) -> AccountId {
-            self.erc20_contract.account_id()
-        }
-
-        /// Get the Address of the ERC20 contract.
-        ///
-        /// Returns:
-        /// - Address: ERC20 contract address.
-        #[ink(message)]
-        pub fn erc20_address(&mut self) -> Address {
-            self.erc20_contract.address()
+        pub fn asset_id(&self) -> AssetId {
+            self.asset_contract.assetId()
         }
 
         /// Get the Merkle root.
-        ///
-        /// Returns:
-        /// - [u8; 32]: current Merkle root.
         #[ink(message)]
         pub fn root(&self) -> [u8; 32] {
             self.root
@@ -257,11 +219,11 @@ mod merke_airdrop {
 
         /// Check if a recipient has already claimed.
         ///
-        /// Arguments:
-        /// - recipient: address to check.
+        /// # Arguments
+        /// - `recipient`: address to check.
         ///
-        /// Returns:
-        /// - bool: true if recipient already claimed, false otherwise.
+        /// # Returns
+        /// - `bool`: true if recipient already claimed, false otherwise.
         #[ink(message)]
         pub fn is_claimed(&self, recipient: Address) -> bool {
             self.claimed.get(recipient).unwrap_or(false)
