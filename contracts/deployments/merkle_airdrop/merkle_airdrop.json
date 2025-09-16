@@ -1,11 +1,11 @@
 {
   "source": {
-    "hash": "0xd4a5fcd6a0bd9d0907d13ef8fa53e84f7ddc51a7b7c0a064c0dd61bef9c2e95b",
-    "language": "ink! 6.0.0-alpha.1",
+    "hash": "0x72ac50b59886112e279acac4a3eeb42dfedb149e5d336c2a5316295bb7467a46",
+    "language": "ink! 6.0.0-alpha.3",
     "compiler": "rustc 1.89.0-nightly",
     "build_info": {
       "build_mode": "Release",
-      "cargo_contract_version": "6.0.0-alpha.1",
+      "cargo_contract_version": "6.0.0-alpha.3",
       "rust_toolchain": "nightly-aarch64-apple-darwin"
     }
   },
@@ -22,39 +22,21 @@
       {
         "args": [
           {
-            "label": "erc20_contract_code_hash",
+            "label": "asset_id",
             "type": {
               "displayName": [
-                "H256"
+                "AssetId"
               ],
               "type": 11
             }
           },
           {
-            "label": "ref_time_limit",
+            "label": "asset_contract_code_hash",
             "type": {
               "displayName": [
-                "u64"
+                "H256"
               ],
               "type": 12
-            }
-          },
-          {
-            "label": "proof_size_limit",
-            "type": {
-              "displayName": [
-                "u64"
-              ],
-              "type": 12
-            }
-          },
-          {
-            "label": "storage_deposit_limit",
-            "type": {
-              "displayName": [
-                "U256"
-              ],
-              "type": 13
             }
           },
           {
@@ -63,93 +45,26 @@
               "displayName": [],
               "type": 10
             }
-          },
-          {
-            "label": "total_supply",
-            "type": {
-              "displayName": [
-                "U256"
-              ],
-              "type": 13
-            }
           }
         ],
         "default": false,
         "docs": [
-          "Constructor: deploys a new ERC20 contract with resource limits.",
+          "Create a new Merkle airdrop contract.",
           "",
-          "Arguments:",
-          "- erc20_contract_code_hash: code hash of ERC20 contract.",
-          "- ref_time_limit: gas ref time limit for instantiation.",
-          "- proof_size_limit: proof size limit.",
-          "- storage_deposit_limit: storage deposit limit.",
-          "- root: Merkle root of eligible claims.",
-          "- total_supply: total supply of the ERC20 token.",
-          "",
-          "Returns:",
-          "- MerkleAirdrop instance with ERC20 deployed and root set."
+          "# Arguments",
+          "- `asset_id`: asset identifier for the ERC20-compatible token.",
+          "- `root`: Merkle root of the distribution tree."
         ],
-        "label": "new_with_limits",
-        "payable": false,
+        "label": "new",
+        "payable": true,
         "returnType": {
           "displayName": [
             "ink_primitives",
             "ConstructorResult"
           ],
-          "type": 15
+          "type": 13
         },
-        "selector": "0xd77d1fca"
-      },
-      {
-        "args": [
-          {
-            "label": "erc20_contract_code_hash",
-            "type": {
-              "displayName": [
-                "H256"
-              ],
-              "type": 11
-            }
-          },
-          {
-            "label": "root",
-            "type": {
-              "displayName": [],
-              "type": 10
-            }
-          },
-          {
-            "label": "total_supply",
-            "type": {
-              "displayName": [
-                "U256"
-              ],
-              "type": 13
-            }
-          }
-        ],
-        "default": false,
-        "docs": [
-          "Constructor: deploys a new ERC20 contract without resource limits.",
-          "",
-          "Arguments:",
-          "- erc20_contract_code_hash: code hash of ERC20 contract.",
-          "- root: Merkle root of eligible claims.",
-          "- total_supply: total supply of the ERC20 token.",
-          "",
-          "Returns:",
-          "- MerkleAirdrop instance with ERC20 deployed and root set."
-        ],
-        "label": "new_no_limits",
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink_primitives",
-            "ConstructorResult"
-          ],
-          "type": 15
-        },
-        "selector": "0x0d1737b7"
+        "selector": "0x9bae9d5e"
       }
     ],
     "docs": [],
@@ -158,133 +73,42 @@
         "displayName": [
           "AccountId"
         ],
-        "type": 22
+        "type": 25
       },
       "balance": {
         "displayName": [
           "Balance"
         ],
-        "type": 27
+        "type": 26
       },
       "blockNumber": {
         "displayName": [
           "BlockNumber"
         ],
-        "type": 29
-      },
-      "chainExtension": {
-        "displayName": [
-          "ChainExtension"
-        ],
-        "type": 30
+        "type": 11
       },
       "hash": {
         "displayName": [
           "Hash"
         ],
-        "type": 28
+        "type": 27
       },
-      "maxEventTopics": 4,
+      "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
       "timestamp": {
         "displayName": [
           "Timestamp"
         ],
-        "type": 12
+        "type": 17
       }
     },
     "events": [
       {
         "args": [
           {
-            "docs": [],
-            "indexed": true,
-            "label": "from",
-            "type": {
-              "displayName": [
-                "Option"
-              ],
-              "type": 26
-            }
-          },
-          {
-            "docs": [],
-            "indexed": true,
-            "label": "to",
-            "type": {
-              "displayName": [
-                "Option"
-              ],
-              "type": 26
-            }
-          },
-          {
-            "docs": [],
-            "indexed": false,
-            "label": "value",
-            "type": {
-              "displayName": [
-                "U256"
-              ],
-              "type": 13
-            }
-          }
-        ],
-        "docs": [
-          "Event emitted when a token transfer occurs."
-        ],
-        "label": "Transfer",
-        "module_path": "erc20::erc20",
-        "signature_topic": "0x2bf04b1fcc64de43ce9704e9ccdc0657018c43d01c3e88bceed23cba23a10f5c"
-      },
-      {
-        "args": [
-          {
-            "docs": [],
-            "indexed": true,
-            "label": "owner",
-            "type": {
-              "displayName": [
-                "Address"
-              ],
-              "type": 0
-            }
-          },
-          {
-            "docs": [],
-            "indexed": true,
-            "label": "spender",
-            "type": {
-              "displayName": [
-                "Address"
-              ],
-              "type": 0
-            }
-          },
-          {
-            "docs": [],
-            "indexed": false,
-            "label": "value",
-            "type": {
-              "displayName": [
-                "U256"
-              ],
-              "type": 13
-            }
-          }
-        ],
-        "docs": [
-          "Event emitted when an approval occurs that `spender` is allowed to withdraw",
-          "up to the amount of `value` tokens from `owner`."
-        ],
-        "label": "Approval",
-        "module_path": "erc20::erc20",
-        "signature_topic": "0xa1d96b3a6e369c8b0ee68c99cb4406104190a21b35f7ef8fa2bcef30a78efc1a"
-      },
-      {
-        "args": [
-          {
-            "docs": [],
+            "docs": [
+              "The address of the recipient."
+            ],
             "indexed": true,
             "label": "recipient",
             "type": {
@@ -295,14 +119,16 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              "Amount of tokens claimed."
+            ],
             "indexed": false,
             "label": "value",
             "type": {
               "displayName": [
                 "U256"
               ],
-              "type": 13
+              "type": 15
             }
           }
         ],
@@ -319,7 +145,7 @@
         "ink",
         "LangError"
       ],
-      "type": 16
+      "type": 14
     },
     "messages": [
       {
@@ -330,7 +156,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 13
+              "type": 15
             }
           }
         ],
@@ -338,12 +164,12 @@
         "docs": [
           " Fund the airdrop contract by transferring tokens in.",
           "",
-          " Arguments:",
-          " - amount: amount of tokens to transfer into contract.",
+          " # Arguments",
+          " - `amount`: amount of tokens to transfer into the contract.",
           "",
-          " Errors:",
-          " - `AmountCannotBeZero`: if `amount == 0`.",
-          " - `TransferFailed`: if ERC20 transfer_from fails."
+          " # Errors",
+          " - [`Error::AmountCannotBeZero`]: if `amount == 0`.",
+          " - [`Error::TransferFailed`]: if ERC20 transfer fails."
         ],
         "label": "fund",
         "mutates": true,
@@ -353,7 +179,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 17
+          "type": 18
         },
         "selector": "0x4aafa343"
       },
@@ -365,7 +191,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 13
+              "type": 15
             }
           },
           {
@@ -374,7 +200,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 20
+              "type": 21
             }
           },
           {
@@ -383,7 +209,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 12
+              "type": 17
             }
           }
         ],
@@ -391,15 +217,15 @@
         "docs": [
           " Claim tokens from the Merkle airdrop.",
           "",
-          " Arguments:",
-          " - value: claim amount for recipient.",
-          " - proof: Merkle proof for `(recipient, value)`.",
-          " - index: leaf index in the Merkle tree.",
+          " # Arguments",
+          " - `value`: claim amount for the recipient.",
+          " - `proof`: Merkle proof for `(recipient, value)`.",
+          " - `index`: leaf index in the Merkle tree.",
           "",
-          " Errors:",
-          " - `AlreadyClaimed`: if recipient already claimed.",
-          " - `InvalidProof`: if Merkle proof does not validate against root.",
-          " - `TransferFailed`: if ERC20 transfer fails."
+          " # Errors",
+          " - [`Error::AlreadyClaimed`]: if recipient already claimed.",
+          " - [`Error::InvalidProof`]: if Merkle proof does not validate.",
+          " - [`Error::TransferFailed`]: if asset transfer fails."
         ],
         "label": "claim",
         "mutates": true,
@@ -409,7 +235,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 17
+          "type": 18
         },
         "selector": "0xb388803f"
       },
@@ -417,52 +243,25 @@
         "args": [],
         "default": false,
         "docs": [
-          " Get the AccountId of the ERC20 contract.",
-          "",
-          " Returns:",
-          " - AccountId: ERC20 contract account id."
+          " Get the token asset id of the asset contract."
         ],
-        "label": "erc20_account_id",
-        "mutates": true,
+        "label": "asset_id",
+        "mutates": false,
         "payable": false,
         "returnType": {
           "displayName": [
             "ink",
             "MessageResult"
           ],
-          "type": 21
+          "type": 22
         },
-        "selector": "0xadbca5cf"
+        "selector": "0x2d42294e"
       },
       {
         "args": [],
         "default": false,
         "docs": [
-          " Get the Address of the ERC20 contract.",
-          "",
-          " Returns:",
-          " - Address: ERC20 contract address."
-        ],
-        "label": "erc20_address",
-        "mutates": true,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 23
-        },
-        "selector": "0x9dd2c4c3"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [
-          " Get the Merkle root.",
-          "",
-          " Returns:",
-          " - [u8; 32]: current Merkle root."
+          " Get the Merkle root."
         ],
         "label": "root",
         "mutates": false,
@@ -472,7 +271,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 24
+          "type": 23
         },
         "selector": "0x0859bfce"
       },
@@ -492,11 +291,11 @@
         "docs": [
           " Check if a recipient has already claimed.",
           "",
-          " Arguments:",
-          " - recipient: address to check.",
+          " # Arguments",
+          " - `recipient`: address to check.",
           "",
-          " Returns:",
-          " - bool: true if recipient already claimed, false otherwise."
+          " # Returns",
+          " - `bool`: true if recipient already claimed, false otherwise."
         ],
         "label": "is_claimed",
         "mutates": false,
@@ -506,7 +305,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 25
+          "type": 24
         },
         "selector": "0xc58eed46"
       }
@@ -541,10 +340,10 @@
                       "name": "inner"
                     }
                   ],
-                  "name": "Erc20Ref"
+                  "name": "AssetHubPrecompileRefFor"
                 }
               },
-              "name": "erc20_contract"
+              "name": "asset_contract"
             },
             {
               "layout": {
@@ -729,9 +528,9 @@
           "composite": {
             "fields": [
               {
-                "name": "erc20_contract",
+                "name": "asset_contract",
                 "type": 0,
-                "typeName": "<Erc20Ref as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<1143898168u32, ()>,>>::Type"
+                "typeName": "<AssetHubPrecompileRef as::ink::storage::traits::AutoStorableHint<\n::ink::storage::traits::ManualKey<1275850399u32, ()>,>>::Type"
               },
               {
                 "name": "root",
@@ -768,6 +567,14 @@
       "id": 11,
       "type": {
         "def": {
+          "primitive": "u32"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": {
+        "def": {
           "composite": {
             "fields": [
               {
@@ -784,45 +591,7 @@
       }
     },
     {
-      "id": 12,
-      "type": {
-        "def": {
-          "primitive": "u64"
-        }
-      }
-    },
-    {
       "id": 13,
-      "type": {
-        "def": {
-          "composite": {
-            "fields": [
-              {
-                "type": 14,
-                "typeName": "[u64; 4]"
-              }
-            ]
-          }
-        },
-        "path": [
-          "primitive_types",
-          "U256"
-        ]
-      }
-    },
-    {
-      "id": 14,
-      "type": {
-        "def": {
-          "array": {
-            "len": 4,
-            "type": 12
-          }
-        }
-      }
-    },
-    {
-      "id": 15,
       "type": {
         "def": {
           "variant": {
@@ -839,7 +608,7 @@
               {
                 "fields": [
                   {
-                    "type": 16
+                    "type": 14
                   }
                 ],
                 "index": 1,
@@ -855,7 +624,7 @@
           },
           {
             "name": "E",
-            "type": 16
+            "type": 14
           }
         ],
         "path": [
@@ -864,7 +633,7 @@
       }
     },
     {
-      "id": 16,
+      "id": 14,
       "type": {
         "def": {
           "variant": {
@@ -883,7 +652,45 @@
       }
     },
     {
+      "id": 15,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 16,
+                "typeName": "[u64; 4]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "primitive_types",
+          "U256"
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "type": {
+        "def": {
+          "array": {
+            "len": 4,
+            "type": 17
+          }
+        }
+      }
+    },
+    {
       "id": 17,
+      "type": {
+        "def": {
+          "primitive": "u64"
+        }
+      }
+    },
+    {
+      "id": 18,
       "type": {
         "def": {
           "variant": {
@@ -891,7 +698,7 @@
               {
                 "fields": [
                   {
-                    "type": 18
+                    "type": 19
                   }
                 ],
                 "index": 0,
@@ -900,7 +707,7 @@
               {
                 "fields": [
                   {
-                    "type": 16
+                    "type": 14
                   }
                 ],
                 "index": 1,
@@ -912,11 +719,11 @@
         "params": [
           {
             "name": "T",
-            "type": 18
+            "type": 19
           },
           {
             "name": "E",
-            "type": 16
+            "type": 14
           }
         ],
         "path": [
@@ -925,7 +732,7 @@
       }
     },
     {
-      "id": 18,
+      "id": 19,
       "type": {
         "def": {
           "variant": {
@@ -942,7 +749,7 @@
               {
                 "fields": [
                   {
-                    "type": 19
+                    "type": 20
                   }
                 ],
                 "index": 1,
@@ -958,7 +765,7 @@
           },
           {
             "name": "E",
-            "type": 19
+            "type": 20
           }
         ],
         "path": [
@@ -967,7 +774,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 20,
       "type": {
         "def": {
           "variant": {
@@ -999,7 +806,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 21,
       "type": {
         "def": {
           "sequence": {
@@ -1009,7 +816,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 22,
       "type": {
         "def": {
           "variant": {
@@ -1017,7 +824,7 @@
               {
                 "fields": [
                   {
-                    "type": 22
+                    "type": 11
                   }
                 ],
                 "index": 0,
@@ -1026,7 +833,7 @@
               {
                 "fields": [
                   {
-                    "type": 16
+                    "type": 14
                   }
                 ],
                 "index": 1,
@@ -1038,11 +845,11 @@
         "params": [
           {
             "name": "T",
-            "type": 22
+            "type": 11
           },
           {
             "name": "E",
-            "type": 16
+            "type": 14
           }
         ],
         "path": [
@@ -1051,7 +858,91 @@
       }
     },
     {
-      "id": 22,
+      "id": 23,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 10
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 14
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 10
+          },
+          {
+            "name": "E",
+            "type": 14
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 24,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 14
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 3
+          },
+          {
+            "name": "E",
+            "type": 14
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 25,
       "type": {
         "def": {
           "composite": {
@@ -1071,166 +962,7 @@
       }
     },
     {
-      "id": 23,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 0
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 16
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 0
-          },
-          {
-            "name": "E",
-            "type": 16
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 24,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 10
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 16
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 10
-          },
-          {
-            "name": "E",
-            "type": 16
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 25,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 3
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 16
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 3
-          },
-          {
-            "name": "E",
-            "type": 16
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
       "id": 26,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "index": 0,
-                "name": "None"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 0
-                  }
-                ],
-                "index": 1,
-                "name": "Some"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 0
-          }
-        ],
-        "path": [
-          "Option"
-        ]
-      }
-    },
-    {
-      "id": 27,
       "type": {
         "def": {
           "primitive": "u128"
@@ -1238,7 +970,7 @@
       }
     },
     {
-      "id": 28,
+      "id": 27,
       "type": {
         "def": {
           "composite": {
@@ -1254,27 +986,6 @@
           "ink_primitives",
           "types",
           "Hash"
-        ]
-      }
-    },
-    {
-      "id": 29,
-      "type": {
-        "def": {
-          "primitive": "u32"
-        }
-      }
-    },
-    {
-      "id": 30,
-      "type": {
-        "def": {
-          "variant": {}
-        },
-        "path": [
-          "ink_primitives",
-          "types",
-          "NoChainExtension"
         ]
       }
     }

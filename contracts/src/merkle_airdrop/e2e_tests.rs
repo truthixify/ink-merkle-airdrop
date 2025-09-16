@@ -51,14 +51,8 @@ impl Setup {
             alice_account.as_bytes(),
             &airdrop_amount_alice.to_big_endian(),
         );
-        // let alice_encoded = (alice_account, airdrop_amount_alice);
-        // let mut leaf_alice = <Keccak256 as HashOutput>::Type::default();
-        // ink::env::hash_encoded::<Keccak256, _>(&alice_encoded, &mut leaf_alice);
 
         let leaf_bob = hash_leaf(bob_account.as_bytes(), &airdrop_amount_bob.to_big_endian());
-        // let bob_encoded = (bob_account, airdrop_amount_bob);
-        // let mut leaf_bob = <Keccak256 as HashOutput>::Type::default();
-        // ink::env::hash_encoded::<Keccak256, _>(&bob_encoded, &mut leaf_bob);
 
         // Our tree has two leaves. The root is the hash of both leaves.
         let root = hash_leaf(&leaf_alice, &leaf_bob);
