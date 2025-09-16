@@ -1,0 +1,51 @@
+{
+  "root": "0xa091e4fedbcfb8576921f3a96559dfa4f7a5717148a56fa2e489e8df8d0e2def",
+  "totalSupply": "6250",
+  "leaves": [
+    {
+      "recipient": "0x1111111111111111111111111111111111111111",
+      "value": "1000",
+      "proof": [
+        "0xe9a788f692099f6207085d8157a6e5858ec0aed9c3f852d917de2c059bd85a2a",
+        "0xab0cae9e2b8f692939971270348b720e82b00c75acbb703db890c7ac5bbd9898",
+        "0x4d69cdd29db52eaaa3deaaa5f4b2e6bd9b6285c0f8971ad0701027fbe30f974e"
+      ]
+    },
+    {
+      "recipient": "0x2222222222222222222222222222222222222222",
+      "value": "2500",
+      "proof": [
+        "0x5e3505fa1d56d9f3f4217b39ab8eefdaebce7bf5d3f8ae940765ed1d4680d96d",
+        "0xab0cae9e2b8f692939971270348b720e82b00c75acbb703db890c7ac5bbd9898",
+        "0x4d69cdd29db52eaaa3deaaa5f4b2e6bd9b6285c0f8971ad0701027fbe30f974e"
+      ]
+    },
+    {
+      "recipient": "0x3333333333333333333333333333333333333333",
+      "value": "500",
+      "proof": [
+        "0xc1e8eb611b5cfd1fcfd7355285ff6a758ec78eb07cd8ecdbdb2b79883703e0af",
+        "0x3aec8a7201d9943aaf76300d58093b9febb71818624c37e4def7ee82943b8734",
+        "0x4d69cdd29db52eaaa3deaaa5f4b2e6bd9b6285c0f8971ad0701027fbe30f974e"
+      ]
+    },
+    {
+      "recipient": "0x4444444444444444444444444444444444444444",
+      "value": "750",
+      "proof": [
+        "0xd376756c99719de0c74a443cb8089d98a11a6ae170840167e6c00e6f63ec2c1e",
+        "0x3aec8a7201d9943aaf76300d58093b9febb71818624c37e4def7ee82943b8734",
+        "0x4d69cdd29db52eaaa3deaaa5f4b2e6bd9b6285c0f8971ad0701027fbe30f974e"
+      ]
+    },
+    {
+      "recipient": "0x5555555555555555555555555555555555555555",
+      "value": "1500",
+      "proof": [
+        "0x71cf9d0f2af1cb69add53d157286aa6477dd564d05c45e2f9c3c72b3f60d4e57",
+        "0x714390f9a9339e4e33727d825e1af3d5579a79692b9facf4a46a891e50ccb8a2",
+        "0x0fef60c091b5a8409cbe14d5df3681bfe752789556f645a8ba0b28ede75108ba"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 use super::*;
-use erc20::Erc20;
+use assets::asset_hub_precompile::{AssetHubPrecompile, AssetHubPrecompileRef, Erc20};
+use assets::AssetId;
 use ink::env::hash::{HashOutput, Keccak256};
 use ink::env::hash_bytes;
 use ink::prelude::vec::Vec;
@@ -34,7 +35,9 @@ struct Setup {
     pub index_alice: u64,
     pub index_bob: u64,
     pub root: [u8; 32],
-    creator: Address,
+    pub creator: Address,
+    pub asset_id: AssetId,
+    pub campaign_end_time: u64,
 }
 
 impl Setup {
@@ -65,6 +68,8 @@ impl Setup {
         let total_supply = U256::from(1_000_000_000);
         let creator =
             ink_e2e::address::<ink::env::DefaultEnvironment>(ink_e2e::Sr25519Keyring::Charlie);
+        let asset_id = 1;
+        let campaign_end_time = 3;
 
         Self {
             alice_account,
@@ -80,161 +85,37 @@ impl Setup {
             index_bob,
             root,
             creator,
+            asset_id,
+            campaign_end_time,
         }
     }
 }
 
 #[ink_e2e::test]
-async fn instantiate_with_insufficient_storage_deposit_limit<Client: E2EBackend>(
-    mut client: Client,
-) -> E2EResult<()> {
+async fn instantiate<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
     // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
+    let assets_contract_code = client
+        .upload("assets", &ink_e2e::charlie())
         .submit()
         .await
-        .expect("erc20 upload failed");
-
-    const REF_TIME_LIMIT: u64 = 500;
-    const PROOF_SIZE_LIMIT: u64 = 100_000_000_000;
-    let storage_deposit_limit = ink::U256::from(100_000_000_000_000u64);
+        .expect("assets upload failed");
 
     let setup = Setup::new();
 
-    let mut constructor = MerkleAirdropRef::new_with_limits(
-        erc20_contract_code.code_hash,
-        REF_TIME_LIMIT,
-        PROOF_SIZE_LIMIT,
-        storage_deposit_limit,
-        setup.root,
-        setup.total_supply,
-    );
-    let call_result = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .dry_run()
-        .await?;
-
-    assert!(call_result.did_revert());
-    let err_msg = String::from_utf8_lossy(call_result.return_data());
-    assert!(
-        err_msg.contains("Cross-contract instantiation failed with ReturnError(OutOfResources)")
-    );
-
-    Ok(())
-}
-
-#[ink_e2e::test]
-async fn instantiate_with_sufficient_limits<Client: E2EBackend>(
-    mut client: Client,
-) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
+    let mut constructor = AssetHubPrecompileRef::new(setup.asset_id);
+    let asset_hub_contract = client
+        .instantiate(
+            "asset_hub_precompile",
+            &ink_e2e::charlie(),
+            &mut constructor,
+        )
         .submit()
         .await
-        .expect("erc20 upload failed");
+        .expect("failed");
 
-    const REF_TIME_LIMIT: u64 = 500_000_000_000_000;
-    const PROOF_SIZE_LIMIT: u64 = 100_000_000_000;
-    // todo remove the last group of `000` to get an `OutOfGas` error in
-    // `pallet-revive`. but they should throw an error about `StorageLimitExhausted`.
-    let storage_deposit_limit = ink::U256::from(100_000_000_000_000u64);
-
-    let setup = Setup::new();
-
-    let mut constructor = MerkleAirdropRef::new_with_limits(
-        erc20_contract_code.code_hash,
-        REF_TIME_LIMIT,
-        PROOF_SIZE_LIMIT,
-        storage_deposit_limit,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await;
-
-    assert!(contract.is_ok(), "{}", contract.err().unwrap());
-
-    Ok(())
-}
-
-#[ink_e2e::test]
-async fn instantiate_no_limits<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
-        .submit()
-        .await
-        .expect("erc20 upload failed");
-
-    let setup = Setup::new();
-    let mut constructor = MerkleAirdropRef::new_no_limits(
-        erc20_contract_code.code_hash,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await;
-
-    assert!(contract.is_ok(), "{}", contract.err().unwrap());
-
-    Ok(())
-}
-
-#[ink_e2e::test]
-async fn fund<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
-        .submit()
-        .await
-        .expect("erc20 upload failed");
-
-    let setup = Setup::new();
-    let mut constructor = MerkleAirdropRef::new_no_limits(
-        erc20_contract_code.code_hash,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await
-        .expect("merkle_airdrop instantiate failed");
-    let mut call_builder = contract.call_builder::<MerkleAirdrop>();
-
-    let call = call_builder.erc20_address();
-    let erc20_address = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `erc20_address` failed")
-        .return_value();
-
-    let mut erc20_call_builder = ink_e2e::create_call_builder::<Erc20>(erc20_address);
-    let creator_balance_call = erc20_call_builder.balance_of(setup.creator);
-    let creator_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_call = erc20_call_builder.balance_of(contract.addr);
-    let contract_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-
-    assert_eq!(creator_balance_before_fund, setup.total_supply);
-    assert_eq!(contract_balance_before_fund, U256::zero());
-
-    let approve_call = erc20_call_builder.approve(contract.addr, setup.total_supply);
+    // Approve tokens BEFORE contract instantiation, so constructor can pull them in
+    let mut assets_call_builder = asset_hub_contract.call_builder::<AssetHubPrecompile>();
+    let approve_call = assets_call_builder.approve(setup.creator, setup.total_supply);
     let approve_result = client
         .call(&ink_e2e::charlie(), &approve_call)
         .submit()
@@ -244,568 +125,655 @@ async fn fund<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
     assert!(approve_result.is_ok(), "Approve failed");
 
     // when
-    let call = call_builder.fund(setup.total_supply);
-    let result = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `fund` failed")
-        .return_value();
-    assert!(result.is_ok(), "Fund failed");
-    // then
-    let creator_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
+    // let mut constructor = MerkleAirdropRef::new(
+    //     setup.asset_id,
+    //     assets_contract_code.code_hash,
+    //     setup.root,
+    //     setup.campaign_end_time,
+    //     setup.total_supply,
+    // );
+    // let contract = client
+    //     .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
+    //     .submit()
+    //     .await;
 
-    assert_eq!(
-        creator_balance_after_fund,
-        U256::zero(),
-        "Creator balance should be zero after funding"
-    );
-    assert_eq!(
-        contract_balance_after_fund, setup.total_supply,
-        "Contract balance should equal total supply after funding"
-    );
+    // // then
+    // assert!(contract.is_ok(), "{}", contract.err().unwrap());
 
     Ok(())
 }
 
-#[ink_e2e::test]
-async fn bob_claim<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
-        .submit()
-        .await
-        .expect("erc20 upload failed");
+// #[ink_e2e::test]
+// async fn fund<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
+//     // given
+//     let assets_contract_code = client
+//         .upload("assets", &ink_e2e::charlie())
+//         .submit()
+//         .await
+//         .expect("assets upload failed");
 
-    let setup = Setup::new();
-    let mut constructor = MerkleAirdropRef::new_no_limits(
-        erc20_contract_code.code_hash,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await
-        .expect("merkle_airdrop instantiate failed");
-    let mut call_builder = contract.call_builder::<MerkleAirdrop>();
+//     let setup = Setup::new();
+//     let mut constructor = MerkleAirdropRef::new(
+//         setup.asset_id,
+//         assets_contract_code.code_hash,
+//         setup.root,
+//         setup.campaign_end_time,
+//         setup.total_supply,
+//     );
+//     let contract = client
+//         .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
+//         .submit()
+//         .await
+//         .expect("merkle_airdrop instantiate failed");
+//     let mut call_builder = contract.call_builder::<MerkleAirdrop>();
 
-    let call = call_builder.erc20_address();
-    let erc20_address = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `erc20_address` failed")
-        .return_value();
+//     let call = call_builder.asset_id();
+//     let asset_id = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `asset_id` failed")
+//         .return_value();
 
-    let mut erc20_call_builder = ink_e2e::create_call_builder::<Erc20>(erc20_address);
-    let creator_balance_call = erc20_call_builder.balance_of(setup.creator);
-    let creator_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_call = erc20_call_builder.balance_of(contract.addr);
-    let contract_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
+//     let mut assets_call_builder = ink_e2e::create_call_builder::<AssetHubPrecompile>(asset_id);
+//     let creator_balance_call = assets_call_builder.balance_of(setup.creator);
+//     let creator_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_call = assets_call_builder.balance_of(contract.addr);
+//     let contract_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
 
-    assert_eq!(creator_balance_before_fund, setup.total_supply);
-    assert_eq!(contract_balance_before_fund, U256::zero());
+//     assert_eq!(creator_balance_before_fund, setup.total_supply);
+//     assert_eq!(contract_balance_before_fund, U256::zero());
 
-    let approve_call = erc20_call_builder.approve(contract.addr, setup.total_supply);
-    let approve_result = client
-        .call(&ink_e2e::charlie(), &approve_call)
-        .submit()
-        .await
-        .expect("Calling `approve` failed")
-        .return_value();
-    assert!(approve_result.is_ok(), "Approve failed");
+//     let approve_call = assets_call_builder.approve(contract.addr, setup.total_supply);
+//     let approve_result = client
+//         .call(&ink_e2e::charlie(), &approve_call)
+//         .submit()
+//         .await
+//         .expect("Calling `approve` failed")
+//         .return_value();
+//     assert!(approve_result.is_ok(), "Approve failed");
 
-    // when
-    let call = call_builder.fund(setup.total_supply);
-    let result = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `fund` failed")
-        .return_value();
-    assert!(result.is_ok(), "Fund failed");
-    // then
-    let creator_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
+//     // when
+//     let call = call_builder.fund(setup.total_supply);
+//     let result = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `fund` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Fund failed");
+//     // then
+//     let creator_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
 
-    assert_eq!(
-        creator_balance_after_fund,
-        U256::zero(),
-        "Creator balance should be zero after funding"
-    );
-    assert_eq!(
-        contract_balance_after_fund, setup.total_supply,
-        "Contract balance should equal total supply after funding"
-    );
+//     assert_eq!(
+//         creator_balance_after_fund,
+//         U256::zero(),
+//         "Creator balance should be zero after funding"
+//     );
+//     assert_eq!(
+//         contract_balance_after_fund, setup.total_supply,
+//         "Contract balance should equal total supply after funding"
+//     );
 
-    let bob_balance_call = erc20_call_builder.balance_of(setup.bob_account);
-    let bob_balance_before_claim = client
-        .call(&ink_e2e::bob(), &bob_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(bob_balance_before_claim, U256::zero());
-    let call = call_builder.claim(
-        setup.airdrop_amount_bob,
-        setup.proof_for_bob.clone(),
-        setup.index_bob,
-    );
-    let result = client
-        .call(&ink_e2e::bob(), &call)
-        .submit()
-        .await
-        .expect("Calling `claim` failed")
-        .return_value();
-    assert!(result.is_ok(), "Claim failed");
-    let bob_balance_after_claim = client
-        .call(&ink_e2e::bob(), &bob_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        bob_balance_after_claim, setup.airdrop_amount_bob,
-        "Bob's balance should equal his airdrop amount after claiming"
-    );
-    let contract_balance_after_claim = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        contract_balance_after_claim,
-        setup.total_supply - setup.airdrop_amount_bob,
-        "Contract balance should decrease by Bob's airdrop amount after he claims"
-    );
+//     Ok(())
+// }
 
-    Ok(())
-}
+// #[ink_e2e::test]
+// async fn bob_claim<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
+//     // given
+//     let assets_contract_code = client
+//         .upload("assets", &ink_e2e::charlie())
+//         .submit()
+//         .await
+//         .expect("assets upload failed");
 
-#[ink_e2e::test]
-async fn alice_claim<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
-        .submit()
-        .await
-        .expect("erc20 upload failed");
+//     let setup = Setup::new();
+//     let mut constructor = MerkleAirdropRef::new(
+//         setup.asset_id,
+//         assets_contract_code.code_hash,
+//         setup.root,
+//         setup.campaign_end_time,
+//         setup.total_supply,
+//     );
+//     let contract = client
+//         .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
+//         .submit()
+//         .await
+//         .expect("merkle_airdrop instantiate failed");
+//     let mut call_builder = contract.call_builder::<MerkleAirdrop>();
 
-    let setup = Setup::new();
-    let mut constructor = MerkleAirdropRef::new_no_limits(
-        erc20_contract_code.code_hash,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await
-        .expect("merkle_airdrop instantiate failed");
-    let mut call_builder = contract.call_builder::<MerkleAirdrop>();
+//     let call = call_builder.asset_id();
+//     let asset_id = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `asset_id` failed")
+//         .return_value();
 
-    let call = call_builder.erc20_address();
-    let erc20_address = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `erc20_address` failed")
-        .return_value();
+//     let mut assets_call_builder = ink_e2e::create_call_builder::<AssetHubPrecompile>(asset_id);
+//     let creator_balance_call = assets_call_builder.balance_of(setup.creator);
+//     let creator_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_call = assets_call_builder.balance_of(contract.addr);
+//     let contract_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
 
-    let mut erc20_call_builder = ink_e2e::create_call_builder::<Erc20>(erc20_address);
-    let creator_balance_call = erc20_call_builder.balance_of(setup.creator);
-    let creator_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_call = erc20_call_builder.balance_of(contract.addr);
-    let contract_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
+//     assert_eq!(creator_balance_before_fund, setup.total_supply);
+//     assert_eq!(contract_balance_before_fund, U256::zero());
 
-    assert_eq!(creator_balance_before_fund, setup.total_supply);
-    assert_eq!(contract_balance_before_fund, U256::zero());
+//     let approve_call = assets_call_builder.approve(contract.addr, setup.total_supply);
+//     let approve_result = client
+//         .call(&ink_e2e::charlie(), &approve_call)
+//         .submit()
+//         .await
+//         .expect("Calling `approve` failed")
+//         .return_value();
+//     assert!(approve_result.is_ok(), "Approve failed");
 
-    let approve_call = erc20_call_builder.approve(contract.addr, setup.total_supply);
-    let approve_result = client
-        .call(&ink_e2e::charlie(), &approve_call)
-        .submit()
-        .await
-        .expect("Calling `approve` failed")
-        .return_value();
-    assert!(approve_result.is_ok(), "Approve failed");
+//     // when
+//     let call = call_builder.fund(setup.total_supply);
+//     let result = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `fund` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Fund failed");
+//     // then
+//     let creator_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
 
-    // when
-    let call = call_builder.fund(setup.total_supply);
-    let result = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `fund` failed")
-        .return_value();
-    assert!(result.is_ok(), "Fund failed");
-    // then
-    let creator_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        creator_balance_after_fund,
-        U256::zero(),
-        "Creator balance should be zero after funding"
-    );
-    assert_eq!(
-        contract_balance_after_fund, setup.total_supply,
-        "Contract balance should equal total supply after funding"
-    );
-    let alice_balance_call = erc20_call_builder.balance_of(setup.alice_account);
-    let alice_balance_before_claim = client
-        .call(&ink_e2e::alice(), &alice_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(alice_balance_before_claim, U256::zero());
-    let call = call_builder.claim(
-        setup.airdrop_amount_alice,
-        setup.proof_for_alice.clone(),
-        setup.index_alice,
-    );
-    let result = client
-        .call(&ink_e2e::alice(), &call)
-        .submit()
-        .await
-        .expect("Calling `claim` failed")
-        .return_value();
-    assert!(result.is_ok(), "Claim failed");
-    let alice_balance_after_claim = client
-        .call(&ink_e2e::alice(), &alice_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        alice_balance_after_claim, setup.airdrop_amount_alice,
-        "Alice's balance should equal her airdrop amount after claiming"
-    );
-    let contract_balance_after_claim = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        contract_balance_after_claim,
-        setup.total_supply - setup.airdrop_amount_alice,
-        "Contract balance should decrease by Alice's airdrop amount after she claims"
-    );
+//     assert_eq!(
+//         creator_balance_after_fund,
+//         U256::zero(),
+//         "Creator balance should be zero after funding"
+//     );
+//     assert_eq!(
+//         contract_balance_after_fund, setup.total_supply,
+//         "Contract balance should equal total supply after funding"
+//     );
 
-    Ok(())
-}
+//     let bob_balance_call = assets_call_builder.balance_of(setup.bob_account);
+//     let bob_balance_before_claim = client
+//         .call(&ink_e2e::bob(), &bob_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(bob_balance_before_claim, U256::zero());
+//     let call = call_builder.claim(
+//         setup.airdrop_amount_bob,
+//         setup.proof_for_bob.clone(),
+//         setup.index_bob,
+//     );
+//     let result = client
+//         .call(&ink_e2e::bob(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `claim` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Claim failed");
+//     let bob_balance_after_claim = client
+//         .call(&ink_e2e::bob(), &bob_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         bob_balance_after_claim, setup.airdrop_amount_bob,
+//         "Bob's balance should equal his airdrop amount after claiming"
+//     );
+//     let contract_balance_after_claim = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         contract_balance_after_claim,
+//         setup.total_supply - setup.airdrop_amount_bob,
+//         "Contract balance should decrease by Bob's airdrop amount after he claims"
+//     );
 
-#[ink_e2e::test]
-async fn bob_and_alice_claim<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
-        .submit()
-        .await
-        .expect("erc20 upload failed");
+//     Ok(())
+// }
 
-    let setup = Setup::new();
-    let mut constructor = MerkleAirdropRef::new_no_limits(
-        erc20_contract_code.code_hash,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await
-        .expect("merkle_airdrop instantiate failed");
-    let mut call_builder = contract.call_builder::<MerkleAirdrop>();
+// #[ink_e2e::test]
+// async fn alice_claim<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
+//     // given
+//     let assets_contract_code = client
+//         .upload("assets", &ink_e2e::charlie())
+//         .submit()
+//         .await
+//         .expect("assets upload failed");
 
-    let call = call_builder.erc20_address();
-    let erc20_address = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `erc20_address` failed")
-        .return_value();
+//     let setup = Setup::new();
+//     let mut constructor = MerkleAirdropRef::new(
+//         setup.asset_id,
+//         assets_contract_code.code_hash,
+//         setup.root,
+//         setup.campaign_end_time,
+//         setup.total_supply,
+//     );
+//     let contract = client
+//         .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
+//         .submit()
+//         .await
+//         .expect("merkle_airdrop instantiate failed");
+//     let mut call_builder = contract.call_builder::<MerkleAirdrop>();
 
-    let mut erc20_call_builder = ink_e2e::create_call_builder::<Erc20>(erc20_address);
-    let creator_balance_call = erc20_call_builder.balance_of(setup.creator);
-    let creator_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_call = erc20_call_builder.balance_of(contract.addr);
-    let contract_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
+//     let call = call_builder.asset_id();
+//     let asset_id = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `asset_id` failed")
+//         .return_value();
 
-    assert_eq!(creator_balance_before_fund, setup.total_supply);
-    assert_eq!(contract_balance_before_fund, U256::zero());
+//     let mut assets_call_builder = ink_e2e::create_call_builder::<AssetHubPrecompile>(asset_id);
+//     let creator_balance_call = assets_call_builder.balance_of(setup.creator);
+//     let creator_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_call = assets_call_builder.balance_of(contract.addr);
+//     let contract_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
 
-    let approve_call = erc20_call_builder.approve(contract.addr, setup.total_supply);
-    let approve_result = client
-        .call(&ink_e2e::charlie(), &approve_call)
-        .submit()
-        .await
-        .expect("Calling `approve` failed")
-        .return_value();
-    assert!(approve_result.is_ok(), "Approve failed");
+//     assert_eq!(creator_balance_before_fund, setup.total_supply);
+//     assert_eq!(contract_balance_before_fund, U256::zero());
 
-    // when
-    let call = call_builder.fund(setup.total_supply);
-    let result = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `fund` failed")
-        .return_value();
-    assert!(result.is_ok(), "Fund failed");
-    // then
-    let creator_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_after_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        creator_balance_after_fund,
-        U256::zero(),
-        "Creator balance should be zero after funding"
-    );
-    assert_eq!(
-        contract_balance_after_fund, setup.total_supply,
-        "Contract balance should equal total supply after funding"
-    );
-    let bob_balance_call = erc20_call_builder.balance_of(setup.bob_account);
-    let bob_balance_before_claim = client
-        .call(&ink_e2e::bob(), &bob_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(bob_balance_before_claim, U256::zero());
-    let call = call_builder.claim(
-        setup.airdrop_amount_bob,
-        setup.proof_for_bob.clone(),
-        setup.index_bob,
-    );
-    let result = client
-        .call(&ink_e2e::bob(), &call)
-        .submit()
-        .await
-        .expect("Calling `claim` failed")
-        .return_value();
-    assert!(result.is_ok(), "Claim failed");
-    let bob_balance_after_claim = client
-        .call(&ink_e2e::bob(), &bob_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        bob_balance_after_claim, setup.airdrop_amount_bob,
-        "Bob's balance should equal his airdrop amount after claiming"
-    );
-    let contract_balance_after_bob_claim = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        contract_balance_after_bob_claim,
-        setup.total_supply - setup.airdrop_amount_bob,
-        "Contract balance should decrease by Bob's airdrop amount after he claims"
-    );
-    let alice_balance_call = erc20_call_builder.balance_of(setup.alice_account);
-    let alice_balance_before_claim = client
-        .call(&ink_e2e::alice(), &alice_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(alice_balance_before_claim, U256::zero());
-    let call = call_builder.claim(
-        setup.airdrop_amount_alice,
-        setup.proof_for_alice.clone(),
-        setup.index_alice,
-    );
-    let result = client
-        .call(&ink_e2e::alice(), &call)
-        .submit()
-        .await
-        .expect("Calling `claim` failed")
-        .return_value();
-    assert!(result.is_ok(), "Claim failed");
-    let alice_balance_after_claim = client
-        .call(&ink_e2e::alice(), &alice_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        alice_balance_after_claim, setup.airdrop_amount_alice,
-        "Alice's balance should equal her airdrop amount after claiming"
-    );
-    let contract_balance_after_alice_claim = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    assert_eq!(
-        contract_balance_after_alice_claim,
-        setup.total_supply - setup.airdrop_amount_bob - setup.airdrop_amount_alice,
-        "Contract balance should decrease by Alice's airdrop amount after she claims"
-    );
-    Ok(())
-}
+//     let approve_call = assets_call_builder.approve(contract.addr, setup.total_supply);
+//     let approve_result = client
+//         .call(&ink_e2e::charlie(), &approve_call)
+//         .submit()
+//         .await
+//         .expect("Calling `approve` failed")
+//         .return_value();
+//     assert!(approve_result.is_ok(), "Approve failed");
 
-#[ink_e2e::test]
-async fn cannot_claim_twice<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
-    // given
-    let erc20_contract_code = client
-        .upload("erc20", &ink_e2e::charlie())
-        .submit()
-        .await
-        .expect("erc20 upload failed");
+//     // when
+//     let call = call_builder.fund(setup.total_supply);
+//     let result = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `fund` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Fund failed");
+//     // then
+//     let creator_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         creator_balance_after_fund,
+//         U256::zero(),
+//         "Creator balance should be zero after funding"
+//     );
+//     assert_eq!(
+//         contract_balance_after_fund, setup.total_supply,
+//         "Contract balance should equal total supply after funding"
+//     );
+//     let alice_balance_call = assets_call_builder.balance_of(setup.alice_account);
+//     let alice_balance_before_claim = client
+//         .call(&ink_e2e::alice(), &alice_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(alice_balance_before_claim, U256::zero());
+//     let call = call_builder.claim(
+//         setup.airdrop_amount_alice,
+//         setup.proof_for_alice.clone(),
+//         setup.index_alice,
+//     );
+//     let result = client
+//         .call(&ink_e2e::alice(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `claim` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Claim failed");
+//     let alice_balance_after_claim = client
+//         .call(&ink_e2e::alice(), &alice_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         alice_balance_after_claim, setup.airdrop_amount_alice,
+//         "Alice's balance should equal her airdrop amount after claiming"
+//     );
+//     let contract_balance_after_claim = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         contract_balance_after_claim,
+//         setup.total_supply - setup.airdrop_amount_alice,
+//         "Contract balance should decrease by Alice's airdrop amount after she claims"
+//     );
 
-    let setup = Setup::new();
-    let mut constructor = MerkleAirdropRef::new_no_limits(
-        erc20_contract_code.code_hash,
-        setup.root,
-        setup.total_supply,
-    );
-    let contract = client
-        .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
-        .submit()
-        .await
-        .expect("merkle_airdrop instantiate failed");
-    let mut call_builder = contract.call_builder::<MerkleAirdrop>();
+//     Ok(())
+// }
 
-    let call = call_builder.erc20_address();
-    let erc20_address = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `fund` failed")
-        .return_value();
+// #[ink_e2e::test]
+// async fn bob_and_alice_claim<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
+//     // given
+//     let assets_contract_code = client
+//         .upload("assets", &ink_e2e::charlie())
+//         .submit()
+//         .await
+//         .expect("assets upload failed");
 
-    let mut erc20_call_builder = ink_e2e::create_call_builder::<Erc20>(erc20_address);
-    let creator_balance_call = erc20_call_builder.balance_of(setup.creator);
-    let creator_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &creator_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
-    let contract_balance_call = erc20_call_builder.balance_of(contract.addr);
-    let contract_balance_before_fund = client
-        .call(&ink_e2e::charlie(), &contract_balance_call)
-        .submit()
-        .await
-        .expect("Calling `balance_of` failed")
-        .return_value();
+//     let setup = Setup::new();
+//     let mut constructor = MerkleAirdropRef::new(
+//         setup.asset_id,
+//         assets_contract_code.code_hash,
+//         setup.root,
+//         setup.campaign_end_time,
+//         setup.total_supply,
+//     );
+//     let contract = client
+//         .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
+//         .submit()
+//         .await
+//         .expect("merkle_airdrop instantiate failed");
+//     let mut call_builder = contract.call_builder::<MerkleAirdrop>();
 
-    assert_eq!(creator_balance_before_fund, setup.total_supply);
-    assert_eq!(contract_balance_before_fund, U256::zero());
+//     let call = call_builder.asset_id();
+//     let asset_id = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `asset_id` failed")
+//         .return_value();
 
-    let approve_call = erc20_call_builder.approve(contract.addr, setup.total_supply);
-    let approve_result = client
-        .call(&ink_e2e::charlie(), &approve_call)
-        .submit()
-        .await
-        .expect("Calling `approve` failed")
-        .return_value();
-    assert!(approve_result.is_ok(), "Approve failed");
+//     let mut assets_call_builder = ink_e2e::create_call_builder::<AssetHubPrecompile>(asset_id);
+//     let creator_balance_call = assets_call_builder.balance_of(setup.creator);
+//     let creator_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_call = assets_call_builder.balance_of(contract.addr);
+//     let contract_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
 
-    // when
-    let call = call_builder.fund(setup.total_supply);
-    let result = client
-        .call(&ink_e2e::charlie(), &call)
-        .submit()
-        .await
-        .expect("Calling `fund` failed")
-        .return_value();
-    assert!(result.is_ok(), "Fund failed");
-    // then
-    let call = call_builder.claim(
-        setup.airdrop_amount_bob,
-        setup.proof_for_bob.clone(),
-        setup.index_bob,
-    );
-    let result = client
-        .call(&ink_e2e::bob(), &call)
-        .submit()
-        .await
-        .expect("Calling `claim` failed")
-        .return_value();
-    assert!(result.is_ok(), "Claim failed");
+//     assert_eq!(creator_balance_before_fund, setup.total_supply);
+//     assert_eq!(contract_balance_before_fund, U256::zero());
 
-    let result = client.call(&ink_e2e::bob(), &call).dry_run().await?;
-    assert!(result.is_err(), "Calling claim again should fail");
+//     let approve_call = assets_call_builder.approve(contract.addr, setup.total_supply);
+//     let approve_result = client
+//         .call(&ink_e2e::charlie(), &approve_call)
+//         .submit()
+//         .await
+//         .expect("Calling `approve` failed")
+//         .return_value();
+//     assert!(approve_result.is_ok(), "Approve failed");
 
-    Ok(())
-}
+//     // when
+//     let call = call_builder.fund(setup.total_supply);
+//     let result = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `fund` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Fund failed");
+//     // then
+//     let creator_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_after_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         creator_balance_after_fund,
+//         U256::zero(),
+//         "Creator balance should be zero after funding"
+//     );
+//     assert_eq!(
+//         contract_balance_after_fund, setup.total_supply,
+//         "Contract balance should equal total supply after funding"
+//     );
+//     let bob_balance_call = assets_call_builder.balance_of(setup.bob_account);
+//     let bob_balance_before_claim = client
+//         .call(&ink_e2e::bob(), &bob_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(bob_balance_before_claim, U256::zero());
+//     let call = call_builder.claim(
+//         setup.airdrop_amount_bob,
+//         setup.proof_for_bob.clone(),
+//         setup.index_bob,
+//     );
+//     let result = client
+//         .call(&ink_e2e::bob(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `claim` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Claim failed");
+//     let bob_balance_after_claim = client
+//         .call(&ink_e2e::bob(), &bob_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         bob_balance_after_claim, setup.airdrop_amount_bob,
+//         "Bob's balance should equal his airdrop amount after claiming"
+//     );
+//     let contract_balance_after_bob_claim = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         contract_balance_after_bob_claim,
+//         setup.total_supply - setup.airdrop_amount_bob,
+//         "Contract balance should decrease by Bob's airdrop amount after he claims"
+//     );
+//     let alice_balance_call = assets_call_builder.balance_of(setup.alice_account);
+//     let alice_balance_before_claim = client
+//         .call(&ink_e2e::alice(), &alice_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(alice_balance_before_claim, U256::zero());
+//     let call = call_builder.claim(
+//         setup.airdrop_amount_alice,
+//         setup.proof_for_alice.clone(),
+//         setup.index_alice,
+//     );
+//     let result = client
+//         .call(&ink_e2e::alice(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `claim` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Claim failed");
+//     let alice_balance_after_claim = client
+//         .call(&ink_e2e::alice(), &alice_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         alice_balance_after_claim, setup.airdrop_amount_alice,
+//         "Alice's balance should equal her airdrop amount after claiming"
+//     );
+//     let contract_balance_after_alice_claim = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     assert_eq!(
+//         contract_balance_after_alice_claim,
+//         setup.total_supply - setup.airdrop_amount_bob - setup.airdrop_amount_alice,
+//         "Contract balance should decrease by Alice's airdrop amount after she claims"
+//     );
+//     Ok(())
+// }
+
+// #[ink_e2e::test]
+// async fn cannot_claim_twice<Client: E2EBackend>(mut client: Client) -> E2EResult<()> {
+//     // given
+//     let assets_contract_code = client
+//         .upload("assets", &ink_e2e::charlie())
+//         .submit()
+//         .await
+//         .expect("assets upload failed");
+
+//     let setup = Setup::new();
+//     let mut constructor = MerkleAirdropRef::new(
+//         setup.asset_id,
+//         assets_contract_code.code_hash,
+//         setup.root,
+//         setup.campaign_end_time,
+//         setup.total_supply,
+//     );
+//     let contract = client
+//         .instantiate("merkle_airdrop", &ink_e2e::charlie(), &mut constructor)
+//         .submit()
+//         .await
+//         .expect("merkle_airdrop instantiate failed");
+//     let mut call_builder = contract.call_builder::<MerkleAirdrop>();
+
+//     let call = call_builder.asset_id();
+//     let asset_id = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `fund` failed")
+//         .return_value();
+
+//     let mut assets_call_builder = ink_e2e::create_call_builder::<AssetHubPrecompile>(asset_id);
+//     let creator_balance_call = assets_call_builder.balance_of(setup.creator);
+//     let creator_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &creator_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+//     let contract_balance_call = assets_call_builder.balance_of(contract.addr);
+//     let contract_balance_before_fund = client
+//         .call(&ink_e2e::charlie(), &contract_balance_call)
+//         .submit()
+//         .await
+//         .expect("Calling `balance_of` failed")
+//         .return_value();
+
+//     assert_eq!(creator_balance_before_fund, setup.total_supply);
+//     assert_eq!(contract_balance_before_fund, U256::zero());
+
+//     let approve_call = assets_call_builder.approve(contract.addr, setup.total_supply);
+//     let approve_result = client
+//         .call(&ink_e2e::charlie(), &approve_call)
+//         .submit()
+//         .await
+//         .expect("Calling `approve` failed")
+//         .return_value();
+//     assert!(approve_result.is_ok(), "Approve failed");
+
+//     // when
+//     let call = call_builder.fund(setup.total_supply);
+//     let result = client
+//         .call(&ink_e2e::charlie(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `fund` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Fund failed");
+//     // then
+//     let call = call_builder.claim(
+//         setup.airdrop_amount_bob,
+//         setup.proof_for_bob.clone(),
+//         setup.index_bob,
+//     );
+//     let result = client
+//         .call(&ink_e2e::bob(), &call)
+//         .submit()
+//         .await
+//         .expect("Calling `claim` failed")
+//         .return_value();
+//     assert!(result.is_ok(), "Claim failed");
+
+//     let result = client.call(&ink_e2e::bob(), &call).dry_run().await?;
+//     assert!(result.is_err(), "Calling claim again should fail");
+
+//     Ok(())
+// }

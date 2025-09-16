@@ -11,10 +11,11 @@
     "node": "ink-node --dev --base-path ./.node-data",
     "build": "bash build.sh",
     "codegen": "bash codegen.sh",
-    "deploy": "bun run scripts/deploy.ts",
+    "deploy": "bun run scripts/setup_airdrop.ts ./data/airdrop/airdrop.csv && bun run scripts/deploy.ts",
     "clean": "rm -rf target tsconfig.tsbuildinfo",
     "lint": "biome check . && prettier . --check",
     "lint:fix": "biome check . --write && prettier . --write",
+    "format": "prettier . --write",
     "typecheck": "tsc --pretty --noEmit",
     "postinstall": "bash postinstall.sh"
   },
@@ -23,6 +24,7 @@
     "@polkadot-api/sdk-ink": "^0.4.0",
     "@polkadot-labs/hdkd": "^0.0.21",
     "@types/bun": "^1.2.20",
+    "csv-parse": "^6.1.0",
     "dedent": "^1.6.0",
     "dotenv": "^17.2.1",
     "yocto-spinner": "^1.0.0"
