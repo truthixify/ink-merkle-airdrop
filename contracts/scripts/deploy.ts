@@ -59,6 +59,7 @@ const main = async () => {
   const deployAssetsResult = await deployContract(initResult, "assets", contracts.assets, "new", {
     asset_id: assetId,
   })
+  console.log("deplio", deployAssetsResult)
 
   await writeAddresses({ assets: deployAssetsResult })
 

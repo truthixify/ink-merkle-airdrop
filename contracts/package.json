@@ -15,9 +15,9 @@
     "clean": "rm -rf target tsconfig.tsbuildinfo",
     "lint": "biome check . && prettier . --check",
     "lint:fix": "biome check . --write && prettier . --write",
-    "format": "prettier . --write",
     "typecheck": "tsc --pretty --noEmit",
-    "postinstall": "bash postinstall.sh"
+    "postinstall": "bash postinstall.sh",
+    "format": "prettier . --write"
   },
   "dependencies": {
     "@polkadot-api/descriptors": "file:.papi/descriptors",
