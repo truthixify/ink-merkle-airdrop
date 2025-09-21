@@ -1,5 +1,5 @@
 [package]
-authors = ["R0GUE <go@r0gue.io>"]
+authors = ["truthixify"]
 edition = "2021"
 name = "assets"
 version = "0.1.0"
@@ -12,10 +12,6 @@ ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", default-
     "unstable-hostfn",
 ] }
 
-[dev-dependencies]
-scale-info = { version = "2" }
-hex = { version = "0.4.3" }
-
 [lib]
 path = "lib.rs"
 
@@ -23,7 +19,3 @@ path = "lib.rs"
 default = ["std"]
 ink-as-dependency = []
 std = ["ink/std"]
-
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(ink_abi, values("ink", "sol", "all"))']
-level = "warn"

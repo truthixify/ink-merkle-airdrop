@@ -24,15 +24,16 @@ pub use self::merke_airdrop::*;
 
 #[ink::contract]
 mod merke_airdrop {
-    use assets::{
-        asset_hub_precompile::{AssetHubPrecompileRef, Erc20},
-        AssetId,
-    };
-    use ink::env::hash::{HashOutput, Keccak256};
+    use assets::asset_hub_precompile::{AssetHubPrecompileRef, Erc20};
+    use assets::AssetId;
     use ink::env::hash_bytes;
+    use ink::env::{
+        call::FromAddr,
+        hash::{HashOutput, Keccak256},
+    };
     use ink::prelude::vec::Vec;
     use ink::storage::Mapping;
-    use ink::{H256, U256};
+    use ink::U256;
 
     /// Compute `keccak256(left || right)`.
     fn hash(left: &[u8], right: &[u8]) -> [u8; 32] {
@@ -118,8 +119,7 @@ mod merke_airdrop {
         /// transferring the airdrop tokens into the contract.
         ///
         /// # Arguments
-        /// - `asset_id`: asset identifier for the ERC20-compatible token.
-        /// - `asset_contract_code_hash`: hash of the asset contract code.
+        /// - `asset_contract_address`: address of the asset contract code.
         /// - `root`: Merkle root of the distribution tree.
         /// - `campaign_end_time`: block timestamp when claiming stops.
         /// - `total_airdrop_amount`: amount of tokens to lock in this campaign.
@@ -135,14 +135,13 @@ mod merke_airdrop {
         /// - If the provided `campaign_end_time` is already in the past.
         #[ink(constructor, payable)]
         pub fn new(
-            asset_id: AssetId,
-            asset_contract_code_hash: H256,
+            asset_contract_address: Address,
             root: [u8; 32],
             campaign_end_time: u64,
             total_airdrop_amount: U256,
         ) -> Self {
-            // Fail if campaign already ended or ends immediately
             let now = Self::env().block_timestamp();
+            // Fail if campaign already ended or ends immediately
             assert!(
                 campaign_end_time > now,
                 "Campaign end time must be in the future"
@@ -157,16 +156,12 @@ mod merke_airdrop {
             let caller = Self::env().caller();
             let contract = Self::env().address();
 
-            // Deploy the asset contract reference
-            let mut asset_contract = AssetHubPrecompileRef::new(asset_id)
-                .code_hash(asset_contract_code_hash)
-                .endowment(0.into())
-                .salt_bytes(Some([1u8; 32]))
-                .instantiate();
+            let mut asset_contract = AssetHubPrecompileRef::from_addr(asset_contract_address);
 
             // Transfer in the total campaign tokens
-            let transferred = asset_contract.transferFrom(caller, contract, total_airdrop_amount);
-            assert!(transferred.is_ok(), "Funding transfer failed");
+            let transferred: core::result::Result<bool, assets::Error> =
+                asset_contract.transferFrom(caller, contract, total_airdrop_amount);
+            assert!(transferred.unwrap_or(false), "Funding transfer failed");
 
             Self {
                 asset_contract,
@@ -194,7 +189,7 @@ mod merke_airdrop {
             self.check_campaign_ongoing()?;
 
             let recipient = self.env().caller();
-            let already_claimed = self.claimed.get(recipient).unwrap_or(false);
+            let already_claimed = self.is_claimed(recipient);
 
             if already_claimed {
                 return Err(Error::AlreadyClaimed);

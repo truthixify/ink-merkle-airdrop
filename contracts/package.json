@@ -1,7 +1,7 @@
 {
   "name": "contracts",
   "private": true,
-  "version": "6.1.0",
+  "version": "6.1.2",
   "type": "module",
   "engines": {
     "node": ">=20 <=24"
@@ -10,23 +10,24 @@
   "scripts": {
     "node": "ink-node --dev --base-path ./.node-data",
     "build": "bash build.sh",
+    "test": "bash test.sh",
     "codegen": "bash codegen.sh",
-    "deploy": "bun run scripts/setup_airdrop.ts ./data/airdrop/airdrop.csv && bun run scripts/deploy.ts",
+    "deploy": "bun run scripts/deploy.ts",
     "clean": "rm -rf target tsconfig.tsbuildinfo",
     "lint": "biome check . && prettier . --check",
     "lint:fix": "biome check . --write && prettier . --write",
     "typecheck": "tsc --pretty --noEmit",
     "postinstall": "bash postinstall.sh",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "upload:assets": "cargo contract upload --suri //Alice --url wss://testnet-passet-hub.polkadot.io --manifest-path ./src/assets/Cargo.toml --execute"
   },
   "dependencies": {
     "@polkadot-api/descriptors": "file:.papi/descriptors",
-    "@polkadot-api/sdk-ink": "^0.4.0",
-    "@polkadot-labs/hdkd": "^0.0.21",
-    "@types/bun": "^1.2.20",
-    "csv-parse": "^6.1.0",
-    "dedent": "^1.6.0",
-    "dotenv": "^17.2.1",
+    "@polkadot-api/sdk-ink": "^0.4.1",
+    "@polkadot-labs/hdkd": "^0.0.24",
+    "@types/bun": "^1.2.22",
+    "dedent": "^1.7.0",
+    "dotenv": "^17.2.2",
     "yocto-spinner": "^1.0.0"
   }
 }

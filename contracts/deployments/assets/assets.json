@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x027a4e9a10090ce1e7c26dd603f154e885a1f8a2c31fd63347b0149cb67574e7",
+    "hash": "0x1a994a159f28be349cd95b935552667803df1017025537af99e7cc725318f119",
     "language": "ink! 6.0.0-alpha.3",
     "compiler": "rustc 1.89.0-nightly",
     "build_info": {
@@ -13,7 +13,7 @@
     "name": "assets",
     "version": "0.1.0",
     "authors": [
-      "R0GUE <go@r0gue.io>"
+      "truthixify"
     ]
   },
   "image": null,

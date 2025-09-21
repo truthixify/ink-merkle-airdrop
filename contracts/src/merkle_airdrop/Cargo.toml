@@ -1,6 +1,6 @@
 [package]
 name = "merkle_airdrop"
-version = "6.0.0-alpha.1"
+version = "0.1.0"
 authors = ["truthixify"]
 edition = "2021"
 publish = false
@@ -13,9 +13,6 @@ ink = { git = "https://github.com/use-ink/ink", tag = "v6.0.0-alpha.3", default-
 # Note: We **need** to specify the `ink-as-dependency` feature.
 #
 # If we don't we will end up with linking errors!
-# erc20 = { path = "../erc20", default-features = false, features = [
-#     "ink-as-dependency",
-# ] }
 assets = { path = "../assets", default-features = false, features = [
     "ink-as-dependency",
 ] }

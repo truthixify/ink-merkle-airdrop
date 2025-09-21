@@ -51,15 +51,12 @@ const main = async () => {
   const initResult = await initApi()
 
   // Deploy ERC20 assets contract
-  const assetsArtifactPath = path.resolve(__dirname, "../deployments/assets/assets.json")
-  const assetsCodeHash = readCodeHash(assetsArtifactPath)
-  const assetId = 1337
+  const assetId = 0
   const campaignEndTime = BigInt(Math.floor(Date.now() / 1000) + 30 * 60 * 60)
 
   const deployAssetsResult = await deployContract(initResult, "assets", contracts.assets, "new", {
     asset_id: assetId,
   })
-  console.log("deplio", deployAssetsResult)
 
   await writeAddresses({ assets: deployAssetsResult })
 
@@ -73,8 +70,7 @@ const main = async () => {
     contracts.merkle_airdrop,
     "new",
     {
-      asset_id: assetId,
-      asset_contract_code_hash: FixedSizeBinary.fromHex(assetsCodeHash),
+      asset_contract_address: FixedSizeBinary.fromHex("0x7790c17f23d614a8a07055ecf5788ace95bfb536"),
       root: FixedSizeBinary.fromHex(setup.root),
       campaign_end_time: campaignEndTime,
       total_airdrop_amount: [BigInt(setup.totalSupply), 0n, 0n, 0n], // scale to U256 tuple

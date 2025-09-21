@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x0ad9bcdd337963f0286b4fd7e75cdd41ea19ef5a2733e05adb1d9d91aa07145c",
+    "hash": "0xeea6ea7a86d0041f01d2aab1909308b209073b209c049a70738f2865d95fad13",
     "language": "ink! 6.0.0-alpha.3",
     "compiler": "rustc 1.89.0-nightly",
     "build_info": {
@@ -11,7 +11,7 @@
   },
   "contract": {
     "name": "merkle_airdrop",
-    "version": "6.0.0-alpha.1",
+    "version": "0.1.0",
     "authors": [
       "truthixify"
     ]
@@ -22,21 +22,12 @@
       {
         "args": [
           {
-            "label": "asset_id",
+            "label": "asset_contract_address",
             "type": {
               "displayName": [
-                "AssetId"
+                "Address"
               ],
-              "type": 12
-            }
-          },
-          {
-            "label": "asset_contract_code_hash",
-            "type": {
-              "displayName": [
-                "H256"
-              ],
-              "type": 13
+              "type": 0
             }
           },
           {
@@ -61,7 +52,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 14
+              "type": 12
             }
           }
         ],
@@ -74,8 +65,7 @@
           "transferring the airdrop tokens into the contract.",
           "",
           "# Arguments",
-          "- `asset_id`: asset identifier for the ERC20-compatible token.",
-          "- `asset_contract_code_hash`: hash of the asset contract code.",
+          "- `asset_contract_address`: address of the asset contract code.",
           "- `root`: Merkle root of the distribution tree.",
           "- `campaign_end_time`: block timestamp when claiming stops.",
           "- `total_airdrop_amount`: amount of tokens to lock in this campaign.",
@@ -97,7 +87,7 @@
             "ink_primitives",
             "ConstructorResult"
           ],
-          "type": 16
+          "type": 14
         },
         "selector": "0x9bae9d5e"
       }
@@ -108,25 +98,25 @@
         "displayName": [
           "AccountId"
         ],
-        "type": 25
+        "type": 24
       },
       "balance": {
         "displayName": [
           "Balance"
         ],
-        "type": 26
+        "type": 25
       },
       "blockNumber": {
         "displayName": [
           "BlockNumber"
         ],
-        "type": 12
+        "type": 21
       },
       "hash": {
         "displayName": [
           "Hash"
         ],
-        "type": 27
+        "type": 26
       },
       "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
@@ -163,7 +153,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 14
+              "type": 12
             }
           }
         ],
@@ -180,7 +170,7 @@
         "ink",
         "LangError"
       ],
-      "type": 17
+      "type": 15
     },
     "messages": [
       {
@@ -191,7 +181,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 14
+              "type": 12
             }
           },
           {
@@ -200,7 +190,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 18
+              "type": 16
             }
           },
           {
@@ -236,7 +226,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 19
+          "type": 17
         },
         "selector": "0xb388803f"
       },
@@ -260,7 +250,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 19
+          "type": 17
         },
         "selector": "0x760a0245"
       },
@@ -278,7 +268,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 22
+          "type": 20
         },
         "selector": "0x2d42294e"
       },
@@ -296,7 +286,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 23
+          "type": 22
         },
         "selector": "0x0859bfce"
       },
@@ -324,7 +314,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 24
+          "type": 23
         },
         "selector": "0xc58eed46"
       }
@@ -622,37 +612,10 @@
       "id": 12,
       "type": {
         "def": {
-          "primitive": "u32"
-        }
-      }
-    },
-    {
-      "id": 13,
-      "type": {
-        "def": {
           "composite": {
             "fields": [
               {
-                "type": 11,
-                "typeName": "[u8; 32]"
-              }
-            ]
-          }
-        },
-        "path": [
-          "primitive_types",
-          "H256"
-        ]
-      }
-    },
-    {
-      "id": 14,
-      "type": {
-        "def": {
-          "composite": {
-            "fields": [
-              {
-                "type": 15,
+                "type": 13,
                 "typeName": "[u64; 4]"
               }
             ]
@@ -665,7 +628,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 13,
       "type": {
         "def": {
           "array": {
@@ -676,7 +639,7 @@
       }
     },
     {
-      "id": 16,
+      "id": 14,
       "type": {
         "def": {
           "variant": {
@@ -693,7 +656,7 @@
               {
                 "fields": [
                   {
-                    "type": 17
+                    "type": 15
                   }
                 ],
                 "index": 1,
@@ -709,7 +672,7 @@
           },
           {
             "name": "E",
-            "type": 17
+            "type": 15
           }
         ],
         "path": [
@@ -718,7 +681,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 15,
       "type": {
         "def": {
           "variant": {
@@ -737,7 +700,7 @@
       }
     },
     {
-      "id": 18,
+      "id": 16,
       "type": {
         "def": {
           "sequence": {
@@ -747,7 +710,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 17,
       "type": {
         "def": {
           "variant": {
@@ -755,7 +718,7 @@
               {
                 "fields": [
                   {
-                    "type": 20
+                    "type": 18
                   }
                 ],
                 "index": 0,
@@ -764,7 +727,7 @@
               {
                 "fields": [
                   {
-                    "type": 17
+                    "type": 15
                   }
                 ],
                 "index": 1,
@@ -776,11 +739,11 @@
         "params": [
           {
             "name": "T",
-            "type": 20
+            "type": 18
           },
           {
             "name": "E",
-            "type": 17
+            "type": 15
           }
         ],
         "path": [
@@ -789,7 +752,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 18,
       "type": {
         "def": {
           "variant": {
@@ -806,7 +769,7 @@
               {
                 "fields": [
                   {
-                    "type": 21
+                    "type": 19
                   }
                 ],
                 "index": 1,
@@ -822,7 +785,7 @@
           },
           {
             "name": "E",
-            "type": 21
+            "type": 19
           }
         ],
         "path": [
@@ -831,7 +794,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 19,
       "type": {
         "def": {
           "variant": {
@@ -875,7 +838,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 20,
       "type": {
         "def": {
           "variant": {
@@ -883,7 +846,7 @@
               {
                 "fields": [
                   {
-                    "type": 12
+                    "type": 21
                   }
                 ],
                 "index": 0,
@@ -892,7 +855,7 @@
               {
                 "fields": [
                   {
-                    "type": 17
+                    "type": 15
                   }
                 ],
                 "index": 1,
@@ -904,11 +867,11 @@
         "params": [
           {
             "name": "T",
-            "type": 12
+            "type": 21
           },
           {
             "name": "E",
-            "type": 17
+            "type": 15
           }
         ],
         "path": [
@@ -917,7 +880,15 @@
       }
     },
     {
-      "id": 23,
+      "id": 21,
+      "type": {
+        "def": {
+          "primitive": "u32"
+        }
+      }
+    },
+    {
+      "id": 22,
       "type": {
         "def": {
           "variant": {
@@ -934,7 +905,7 @@
               {
                 "fields": [
                   {
-                    "type": 17
+                    "type": 15
                   }
                 ],
                 "index": 1,
@@ -950,7 +921,7 @@
           },
           {
             "name": "E",
-            "type": 17
+            "type": 15
           }
         ],
         "path": [
@@ -959,7 +930,7 @@
       }
     },
     {
-      "id": 24,
+      "id": 23,
       "type": {
         "def": {
           "variant": {
@@ -976,7 +947,7 @@
               {
                 "fields": [
                   {
-                    "type": 17
+                    "type": 15
                   }
                 ],
                 "index": 1,
@@ -992,7 +963,7 @@
           },
           {
             "name": "E",
-            "type": 17
+            "type": 15
           }
         ],
         "path": [
@@ -1001,7 +972,7 @@
       }
     },
     {
-      "id": 25,
+      "id": 24,
       "type": {
         "def": {
           "composite": {
@@ -1021,7 +992,7 @@
       }
     },
     {
-      "id": 26,
+      "id": 25,
       "type": {
         "def": {
           "primitive": "u128"
@@ -1029,7 +1000,7 @@
       }
     },
     {
-      "id": 27,
+      "id": 26,
       "type": {
         "def": {
           "composite": {

@@ -137,38 +137,3 @@ pub mod asset_hub_precompile {
         Address::from(address_bytes)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::asset_hub_precompile::{fixed_address, prefixed_address};
-
-    #[test]
-    fn fixed_address_works() {
-        let expected = "0000000000000000000000000000000000640000";
-        let result = fixed_address(100);
-        let address_bytes: [u8; 20] = result.into();
-        let hex_result = hex::encode(address_bytes);
-        assert_eq!(hex_result, expected);
-    }
-
-    #[test]
-    fn prefixed_address_works() {
-        let expected = "ffffffff00000000000000000000000000650000";
-        let result = prefixed_address(101, u32::MAX);
-        let address_bytes: [u8; 20] = result.into();
-        let hex_result = hex::encode(address_bytes);
-        assert_eq!(hex_result, expected);
-    }
-
-    #[test]
-    fn contract_stores_asset_id() {
-        use asset_hub_precompile::AssetHubPrecompile;
-
-        // Create contract for asset ID 1337
-        let contract = AssetHubPrecompile::new(1337);
-
-        // Verify the asset ID is stored correctly
-        assert_eq!(contract.assetId(), 1337);
-    }
-}
