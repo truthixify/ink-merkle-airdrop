@@ -54,7 +54,7 @@ export function setupAirdrop(csvPath: string) {
 
 // If run directly: build setup and write JSON for later use
 if (require.main === module) {
-  const csvPath = process.argv[2] || "./airdrop.csv"
+  const csvPath = process.argv[2] || "./data/airdrop/airdrop.csv"
   const setup = setupAirdrop(csvPath)
 
   const outDir = path.resolve(__dirname, "../data/airdrop")

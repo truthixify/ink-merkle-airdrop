@@ -112,33 +112,30 @@ mod merke_airdrop {
     }
 
     impl MerkleAirdrop {
-        /// Create a new Merkle airdrop contract and fund it.
+        /// Create a new Merkle airdrop contract.
         ///
-        /// Initializes the distribution campaign by deploying the asset contract
-        /// reference, setting the Merkle root, configuring the claim window, and
-        /// transferring the airdrop tokens into the contract.
+        /// Initializes the distribution campaign by:
+        /// - setting the ERC20 asset contract reference,
+        /// - committing to the Merkle root,
+        /// - configuring the claim window,
+        /// - recording the contract owner.
+        ///
+        /// **Note:** This constructor does not transfer in the campaign tokens.
+        /// The caller must invoke [`fund`] immediately after deployment
+        /// to lock the tokens needed for the campaign.
         ///
         /// # Arguments
         /// - `asset_contract_address`: address of the asset contract code.
         /// - `root`: Merkle root of the distribution tree.
         /// - `campaign_end_time`: block timestamp when claiming stops.
-        /// - `total_airdrop_amount`: amount of tokens to lock in this campaign.
-        ///
-        /// # Behavior
-        /// - The caller becomes the contract owner.
-        /// - The contract transfers `total_airdrop_amount` tokens from the caller
-        ///   into itself during deployment.
         ///
         /// # Panics
-        /// - If `total_airdrop_amount == 0`.
-        /// - If the token transfer from caller to contract fails.
         /// - If the provided `campaign_end_time` is already in the past.
         #[ink(constructor, payable)]
         pub fn new(
             asset_contract_address: Address,
             root: [u8; 32],
             campaign_end_time: u64,
-            total_airdrop_amount: U256,
         ) -> Self {
             let now = Self::env().block_timestamp();
             // Fail if campaign already ended or ends immediately
@@ -147,21 +144,8 @@ mod merke_airdrop {
                 "Campaign end time must be in the future"
             );
 
-            // Fail if trying to fund with 0 tokens
-            assert!(
-                !total_airdrop_amount.is_zero(),
-                "Total airdrop amount cannot be zero"
-            );
-
             let caller = Self::env().caller();
-            let contract = Self::env().address();
-
-            let mut asset_contract = AssetHubPrecompileRef::from_addr(asset_contract_address);
-
-            // Transfer in the total campaign tokens
-            let transferred: core::result::Result<bool, assets::Error> =
-                asset_contract.transferFrom(caller, contract, total_airdrop_amount);
-            assert!(transferred.unwrap_or(false), "Funding transfer failed");
+            let asset_contract = AssetHubPrecompileRef::from_addr(asset_contract_address);
 
             Self {
                 asset_contract,
@@ -169,6 +153,42 @@ mod merke_airdrop {
                 claimed: Mapping::new(),
                 owner: caller,
                 campaign_end_time,
+            }
+        }
+
+        /// Fund the Merkle airdrop campaign.
+        ///
+        /// Locks the specified amount of ERC20-compatible tokens
+        /// into the contract, so they can later be claimed by recipients.
+        ///
+        /// # Arguments
+        /// - `total_airdrop_amount`: amount of tokens to transfer from the caller
+        ///   into the contract for distribution.
+        ///
+        /// # Behavior
+        /// - Transfers `total_airdrop_amount` tokens from the caller into this contract.
+        /// - Requires the caller to have approved this contract to spend
+        ///   at least `total_airdrop_amount` tokens beforehand.
+        ///
+        /// # Errors
+        /// - [`Error::AmountCannotBeZero`]: if the amount is zero.
+        /// - [`Error::TransferFailed`]: if the token transfer fails.
+        #[ink(message)]
+        pub fn fund(&mut self, total_airdrop_amount: U256) -> Result<()> {
+            if total_airdrop_amount.is_zero() {
+                return Err(Error::AmountCannotBeZero);
+            }
+
+            let caller = self.env().caller();
+            let contract = self.env().address();
+
+            let transferred =
+                self.asset_contract
+                    .transferFrom(caller, contract, total_airdrop_amount);
+
+            match transferred {
+                Ok(true) => Ok(()),
+                _ => Err(Error::TransferFailed),
             }
         }
 

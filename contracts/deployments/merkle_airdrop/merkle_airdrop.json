@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0xeea6ea7a86d0041f01d2aab1909308b209073b209c049a70738f2865d95fad13",
+    "hash": "0xe15306c1a22fedd01b1a94d1875986fca0b71e51fecfe9bbbff59c35a7db5e57",
     "language": "ink! 6.0.0-alpha.3",
     "compiler": "rustc 1.89.0-nightly",
     "build_info": {
@@ -45,39 +45,28 @@
               ],
               "type": 9
             }
-          },
-          {
-            "label": "total_airdrop_amount",
-            "type": {
-              "displayName": [
-                "U256"
-              ],
-              "type": 12
-            }
           }
         ],
         "default": false,
         "docs": [
-          "Create a new Merkle airdrop contract and fund it.",
+          "Create a new Merkle airdrop contract.",
           "",
-          "Initializes the distribution campaign by deploying the asset contract",
-          "reference, setting the Merkle root, configuring the claim window, and",
-          "transferring the airdrop tokens into the contract.",
+          "Initializes the distribution campaign by:",
+          "- setting the ERC20 asset contract reference,",
+          "- committing to the Merkle root,",
+          "- configuring the claim window,",
+          "- recording the contract owner.",
+          "",
+          "**Note:** This constructor does not transfer in the campaign tokens.",
+          "The caller must invoke [`fund`] immediately after deployment",
+          "to lock the tokens needed for the campaign.",
           "",
           "# Arguments",
           "- `asset_contract_address`: address of the asset contract code.",
           "- `root`: Merkle root of the distribution tree.",
           "- `campaign_end_time`: block timestamp when claiming stops.",
-          "- `total_airdrop_amount`: amount of tokens to lock in this campaign.",
-          "",
-          "# Behavior",
-          "- The caller becomes the contract owner.",
-          "- The contract transfers `total_airdrop_amount` tokens from the caller",
-          "  into itself during deployment.",
           "",
           "# Panics",
-          "- If `total_airdrop_amount == 0`.",
-          "- If the token transfer from caller to contract fails.",
           "- If the provided `campaign_end_time` is already in the past."
         ],
         "label": "new",
@@ -87,7 +76,7 @@
             "ink_primitives",
             "ConstructorResult"
           ],
-          "type": 14
+          "type": 12
         },
         "selector": "0x9bae9d5e"
       }
@@ -153,7 +142,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 12
+              "type": 14
             }
           }
         ],
@@ -170,9 +159,53 @@
         "ink",
         "LangError"
       ],
-      "type": 15
+      "type": 13
     },
     "messages": [
+      {
+        "args": [
+          {
+            "label": "total_airdrop_amount",
+            "type": {
+              "displayName": [
+                "U256"
+              ],
+              "type": 14
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Fund the Merkle airdrop campaign.",
+          "",
+          " Locks the specified amount of ERC20-compatible tokens",
+          " into the contract, so they can later be claimed by recipients.",
+          "",
+          " # Arguments",
+          " - `total_airdrop_amount`: amount of tokens to transfer from the caller",
+          "   into the contract for distribution.",
+          "",
+          " # Behavior",
+          " - Transfers `total_airdrop_amount` tokens from the caller into this contract.",
+          " - Requires the caller to have approved this contract to spend",
+          "   at least `total_airdrop_amount` tokens beforehand.",
+          "",
+          " # Errors",
+          " - [`Error::AmountCannotBeZero`]: if the amount is zero.",
+          " - [`Error::TransferFailed`]: if the token transfer fails."
+        ],
+        "label": "fund",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 16
+        },
+        "selector": "0x4aafa343"
+      },
       {
         "args": [
           {
@@ -181,7 +214,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 12
+              "type": 14
             }
           },
           {
@@ -190,7 +223,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 16
+              "type": 19
             }
           },
           {
@@ -226,7 +259,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 17
+          "type": 16
         },
         "selector": "0xb388803f"
       },
@@ -250,7 +283,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 17
+          "type": 16
         },
         "selector": "0x760a0245"
       },
@@ -612,36 +645,6 @@
       "id": 12,
       "type": {
         "def": {
-          "composite": {
-            "fields": [
-              {
-                "type": 13,
-                "typeName": "[u64; 4]"
-              }
-            ]
-          }
-        },
-        "path": [
-          "primitive_types",
-          "U256"
-        ]
-      }
-    },
-    {
-      "id": 13,
-      "type": {
-        "def": {
-          "array": {
-            "len": 4,
-            "type": 9
-          }
-        }
-      }
-    },
-    {
-      "id": 14,
-      "type": {
-        "def": {
           "variant": {
             "variants": [
               {
@@ -656,7 +659,7 @@
               {
                 "fields": [
                   {
-                    "type": 15
+                    "type": 13
                   }
                 ],
                 "index": 1,
@@ -672,7 +675,7 @@
           },
           {
             "name": "E",
-            "type": 15
+            "type": 13
           }
         ],
         "path": [
@@ -681,7 +684,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 13,
       "type": {
         "def": {
           "variant": {
@@ -700,17 +703,37 @@
       }
     },
     {
-      "id": 16,
+      "id": 14,
       "type": {
         "def": {
-          "sequence": {
-            "type": 11
+          "composite": {
+            "fields": [
+              {
+                "type": 15,
+                "typeName": "[u64; 4]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "primitive_types",
+          "U256"
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": {
+        "def": {
+          "array": {
+            "len": 4,
+            "type": 9
           }
         }
       }
     },
     {
-      "id": 17,
+      "id": 16,
       "type": {
         "def": {
           "variant": {
@@ -718,7 +741,7 @@
               {
                 "fields": [
                   {
-                    "type": 18
+                    "type": 17
                   }
                 ],
                 "index": 0,
@@ -727,7 +750,7 @@
               {
                 "fields": [
                   {
-                    "type": 15
+                    "type": 13
                   }
                 ],
                 "index": 1,
@@ -739,11 +762,11 @@
         "params": [
           {
             "name": "T",
-            "type": 18
+            "type": 17
           },
           {
             "name": "E",
-            "type": 15
+            "type": 13
           }
         ],
         "path": [
@@ -752,7 +775,7 @@
       }
     },
     {
-      "id": 18,
+      "id": 17,
       "type": {
         "def": {
           "variant": {
@@ -769,7 +792,7 @@
               {
                 "fields": [
                   {
-                    "type": 19
+                    "type": 18
                   }
                 ],
                 "index": 1,
@@ -785,7 +808,7 @@
           },
           {
             "name": "E",
-            "type": 19
+            "type": 18
           }
         ],
         "path": [
@@ -794,7 +817,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 18,
       "type": {
         "def": {
           "variant": {
@@ -838,6 +861,16 @@
       }
     },
     {
+      "id": 19,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 11
+          }
+        }
+      }
+    },
+    {
       "id": 20,
       "type": {
         "def": {
@@ -855,7 +888,7 @@
               {
                 "fields": [
                   {
-                    "type": 15
+                    "type": 13
                   }
                 ],
                 "index": 1,
@@ -871,7 +904,7 @@
           },
           {
             "name": "E",
-            "type": 15
+            "type": 13
           }
         ],
         "path": [
@@ -905,7 +938,7 @@
               {
                 "fields": [
                   {
-                    "type": 15
+                    "type": 13
                   }
                 ],
                 "index": 1,
@@ -921,7 +954,7 @@
           },
           {
             "name": "E",
-            "type": 15
+            "type": 13
           }
         ],
         "path": [
@@ -947,7 +980,7 @@
               {
                 "fields": [
                   {
-                    "type": 15
+                    "type": 13
                   }
                 ],
                 "index": 1,
@@ -963,7 +996,7 @@
           },
           {
             "name": "E",
-            "type": 15
+            "type": 13
           }
         ],
         "path": [

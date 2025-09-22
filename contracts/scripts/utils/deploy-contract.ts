@@ -28,7 +28,6 @@ export async function deployContract<
     const blob = await file.bytes()
     const code = Binary.fromBytes(blob)
     const contractSdk = createReviveSdk(api, descriptors)
-    console.error("lol 1")
 
     // Check if account is mapped
     const isMapped = await contractSdk.addressIsMapped(ss58SignerAddress)
@@ -39,7 +38,6 @@ export async function deployContract<
         throw new Error("Failed to map account")
       }
     }
-    console.error("lol 2")
 
     // Build deployment payload
     const constructorPayload = {
@@ -47,21 +45,17 @@ export async function deployContract<
       data: constructorArgs,
     }
     const deployer = contractSdk.getDeployer(code)
-    console.error("lol 3")
 
     // Determine deployment address
     const evmAddress = await deployer.estimateAddress(constructorName, constructorPayload)
     if (!evmAddress) {
       throw new Error("Failed to estimate deployment address")
     }
-    console.error("lol 4")
-    console.log("lets see", constructorName, constructorPayload)
 
     // Deploy contract
     const txResult = await deployer
       .deploy(constructorName, constructorPayload)
       .signAndSubmit(signer)
-    console.error("lol 5")
 
     if (!txResult.ok) {
       console.error("error value", txResult.dispatchError.value)

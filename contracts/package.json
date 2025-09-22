@@ -18,12 +18,11 @@
     "lint:fix": "biome check . --write && prettier . --write",
     "typecheck": "tsc --pretty --noEmit",
     "postinstall": "bash postinstall.sh",
-    "format": "prettier . --write",
-    "upload:assets": "cargo contract upload --suri //Alice --url wss://testnet-passet-hub.polkadot.io --manifest-path ./src/assets/Cargo.toml --execute"
+    "format": "prettier . --write"
   },
   "dependencies": {
     "@polkadot-api/descriptors": "file:.papi/descriptors",
-    "@polkadot-api/sdk-ink": "^0.4.1",
+    "@polkadot-api/sdk-ink": "^0.4.2",
     "@polkadot-labs/hdkd": "^0.0.24",
     "@types/bun": "^1.2.22",
     "dedent": "^1.7.0",

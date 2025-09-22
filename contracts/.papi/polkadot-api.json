@@ -5,14 +5,14 @@
     "dev": {
       "wsUrl": "ws://127.0.0.1:9944",
       "metadata": ".papi/metadata/dev.scale",
-      "genesis": "0x4545454545454545454545454545454545454545454545454545454545454545",
-      "codeHash": "0x5071bddba9e3ded215c7009351923c87196674d87f5be4efed16d8c7d6d29e35"
+      "genesis": "0x6915f873beb99c2ae703ae88b338ef4d6027a1ff2bb24fb8a5c4e5930910a517",
+      "codeHash": "0x5ac667525a813b2f341699f0adeabae53fa4843dcdc58a1069191c092eda908d"
     },
     "passetHub": {
       "wsUrl": "wss://testnet-passet-hub.polkadot.io",
       "metadata": ".papi/metadata/passethub.scale",
       "genesis": "0xfd974cf9eaf028f5e44b9fdd1949ab039c6cf9cc54449b0b60d71b042e79aeb6",
-      "codeHash": "0x87d8a4f006f8d55b05a81e32c8594acabb4f95dbeae1b724edc9ecf2289dc7af"
+      "codeHash": "0x3e088e61b3cb51e74c67cb3634a699109bf3ded14fbd35ed731968d0aa82a441"
     },
     "pop": {
       "wsUrl": "wss://rpc1.paseo.popnetwork.xyz",
