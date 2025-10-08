@@ -46,5 +46,6 @@
     ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
 "github-actions.use-enterprise": true,
-"kiroAgent.configureMCP": "Disabled"
+"kiroAgent.configureMCP": "Disabled",
+"postman.settings.dotenv-detection-notification-visibility": false
 }
